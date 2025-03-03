@@ -41,7 +41,7 @@ if __name__ == '__main__':
 		'--gpu',
 		help='gpu index',
 		type=int,
-		default=3
+		default=0
 	)
 	parser.add_argument(
 		'--emb_size',

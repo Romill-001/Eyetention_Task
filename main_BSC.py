@@ -53,7 +53,7 @@ if __name__ == '__main__':
 		'--gpu',
 		help='gpu index',
 		type=int,
-		default=7
+		default=0
 	)
 	args = parser.parse_args()
 	gpu = args.gpu

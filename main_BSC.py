@@ -58,15 +58,24 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 	gpu = args.gpu
 
-	torch.set_default_tensor_type('torch.FloatTensor')
-	availbl = torch.cuda.is_available()
-	print(torch.cuda.is_available())
-	if availbl:
-		device = f'cuda:{gpu}'
-	else:
-		device = 'cpu'
-	torch.cuda.set_device(gpu)
+	# torch.set_default_tensor_type(torch.float32)
+	# availbl = torch.cuda.is_available()
+	# print(torch.cuda.is_available())
+	# if availbl:
+	# 	device = f'cuda:{gpu}'
+	# else:
+	# 	device = 'cpu'
+	# torch.cuda.set_device(gpu)
 
+	availbl = torch.cuda.is_available()
+	device = f'cuda:{args.gpu}' if availbl else 'cpu'
+	torch.set_default_dtype(torch.float32)
+	torch.set_default_device(device)
+
+	if availbl:
+		torch.cuda.set_device(args.gpu)
+		torch.backends.cudnn.benchmark = True
+	
 	cf = {"model_pretrained": "bert-base-chinese",
 			"lr": 1e-3,
 			"max_grad_norm": 10,

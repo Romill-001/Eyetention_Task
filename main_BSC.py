@@ -329,7 +329,7 @@ if __name__ == '__main__':
 				if bool(args.scanpath_gen_flag) == True:
 					sn_len = (torch.sum(sn_attention_mask_test, axis=1) - 2).detach().to('cpu').numpy()
 					#compute the scan path generated from the model when the first CLS token is given
-					sp_dnn = dnn.scanpath_generation(sn_emd=sn_input_ids_test,
+					sp_dnn, _ = dnn.scanpath_generation(sn_emd=sn_input_ids_test,
 														 sn_mask=sn_attention_mask_test,
 														 word_ids_sn=None,
 														 sn_word_len = sn_word_len_test,

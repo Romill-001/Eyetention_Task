@@ -58,7 +58,7 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 	gpu = args.gpu
 
-	torch.set_default_tensor_type(float)
+	torch.set_default_tensor_type(torch.FloatTensor)
 	availbl = torch.cuda.is_available()
 	print(torch.cuda.is_available())
 	if availbl:

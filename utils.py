@@ -50,7 +50,7 @@ def compute_BSC_word_length(sn_df):
 	arr[arr!=0] = 1/(arr[arr!=0])
 	return arr
 
-def pad_seq(seqs, max_len, pad_value, dtype=np.compat.long):
+def pad_seq(seqs, max_len, pad_value, dtype=np.int64):
 	padded = np.full((len(seqs), max_len), fill_value=pad_value, dtype=dtype)
 	for i, seq in enumerate(seqs):
 		padded[i, 0] = 0
@@ -60,7 +60,7 @@ def pad_seq(seqs, max_len, pad_value, dtype=np.compat.long):
 
 	return padded
 
-def pad_seq_with_nan(seqs, max_len, dtype=np.compat.long):
+def pad_seq_with_nan(seqs, max_len, dtype=np.int64):
 	padded = np.full((len(seqs), max_len), fill_value=np.nan, dtype=dtype)
 	for i, seq in enumerate(seqs):
 		padded[i, 1:(len(seq)+1)] = seq

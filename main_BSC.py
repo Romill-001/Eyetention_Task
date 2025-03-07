@@ -67,9 +67,10 @@ if __name__ == '__main__':
 	# 	device = 'cpu'
 	# torch.cuda.set_device(gpu)
 
-	availbl = torch.cuda.is_available()
-	device = f'cuda:{gpu}' if availbl else 'cpu'
 	torch.set_default_dtype(torch.float32)
+	availbl = torch.cuda.is_available()
+	print(availbl)
+	device = f'cuda:{gpu}' if availbl else 'cpu'
 	torch.set_default_device(gpu)
 
 	

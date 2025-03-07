@@ -70,11 +70,8 @@ if __name__ == '__main__':
 	availbl = torch.cuda.is_available()
 	device = f'cuda:{gpu}' if availbl else 'cpu'
 	torch.set_default_dtype(torch.float32)
-	torch.set_default_device(device)
+	torch.set_default_device(gpu)
 
-	if availbl:
-		torch.cuda.set_device(gpu)
-		#torch.backends.cudnn.benchmark = True
 	
 	cf = {"model_pretrained": "bert-base-chinese",
 			"lr": 1e-3,

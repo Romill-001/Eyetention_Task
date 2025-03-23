@@ -52,10 +52,10 @@ def _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer,
     sub_id_list = []
     for sn_id in sn_list:
         # Обработка последовательности предложений
-        sn_df = eyemovement_df[eyemovement_df.sn == sn_id]
-        sn = word_info_df[word_info_df.SN == sn_id]
-        sn_str = ''.join(sn.WORD.values)
-        sn_word_len = compute_BSC_word_length(sn)
+        sn_df = eyemovement_df[eyemovement_df.sentnum == sn_id]
+        sn = word_info_df[word_info_df.sentnum == sn_id]
+        sn_str = ' '.join(sn.word.values)  # Используем столбец 'word' для текста предложения
+        sn_word_len = compute_word_length_celer(sn.word.str.len().values)  # Вычисляем длину слов
 
         # Токенизация и паддинг
         tokenizer.padding_side = 'right'
@@ -70,23 +70,23 @@ def _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer,
 
         # Обработка последовательности фиксаций
         for sub_id in reader_list:
-            sub_df = sn_df[sn_df.id == sub_id]
+            sub_df = sn_df[sn_df.subid == sub_id]
             if len(sub_df) == 0:
                 # Нет данных о сканировании для субъекта
                 continue
 
-            sp_word_pos, sp_fix_loc, sp_fix_dur = sub_df.wn.values, sub_df.fl.values, sub_df.dur.values
-            sp_landing_pos_char = np.modf(sp_fix_loc)[0]
+            sp_word_pos, sp_fix_loc, sp_fix_dur = sub_df.wordnum.values, sub_df.xn.values, sub_df.dur.values
+            sp_landing_pos_char = sp_fix_loc  # Используем xn для позиции фиксации
             SP_landing_pos.append(sp_landing_pos_char)
 
             # Преобразование порядковых позиций на основе слов в позиции на основе токенов
-            sp_ordinal_pos = [np.sum(sn[sn.NW < value].LEN) + np.ceil(sp_fix_loc[count] + 1e-10) for count, value in enumerate(sp_word_pos)]
+            sp_ordinal_pos = sp_word_pos  # Используем wordnum для порядковых позиций
             SP_ordinal_pos.append(sp_ordinal_pos)
             SP_fix_dur.append(sp_fix_dur)
 
             # Токенизация и паддинг для последовательности фиксаций
-            sp_token = [sn_str[int(i - 1)] for i in sp_ordinal_pos]
-            sp_token_str = '[CLS]' + ''.join(sp_token) + '[SEP]'
+            sp_token = [sn.word.iloc[int(i - 1)] for i in sp_ordinal_pos]
+            sp_token_str = '[CLS]' + ' '.join(sp_token) + '[SEP]'
             sp_tokens = tokenizer.encode_plus(sp_token_str,
                                               add_special_tokens=False,
                                               truncation=True,
@@ -155,11 +155,9 @@ class MECOdataset(Dataset):
 
 def load_corpus(corpus, task=None):
     if corpus == 'BSC':
-        # Загрузка данных BSC
         word_info_df, pos_info_df, eyemovement_df = load_bsc()
         return word_info_df, pos_info_df, eyemovement_df
     elif corpus == 'celer':
-        # Загрузка данных Celer
         eyemovement_df = pd.read_csv('./Data/celer/data_v2.0/sent_fix.tsv', delimiter='\t')
         eyemovement_df['CURRENT_FIX_INTEREST_AREA_LABEL'] = eyemovement_df.CURRENT_FIX_INTEREST_AREA_LABEL.replace('\t(.*)', '', regex=True)
         word_info_df = pd.read_csv('./Data/celer/data_v2.0/sent_ia.tsv', delimiter='\t')

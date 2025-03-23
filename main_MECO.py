@@ -87,9 +87,11 @@ if __name__ == '__main__':
     le.fit(np.append(np.arange(-cf["max_sn_len"] + 3, cf["max_sn_len"] - 1), cf["max_sn_len"] - 1))
 
     # Load corpus
-    word_info_df, _, eyemovement_df = load_corpus(cf["dataset"])
-    sn_list = np.unique(eyemovement_df.sn.values).tolist()
-    reader_list = np.unique(eyemovement_df.id.values).tolist()
+    word_info_df, _, eyemovement_df = load_corpus('MECO')
+
+    # Создание списков предложений и читателей
+    sn_list = np.unique(eyemovement_df.sentnum.values).tolist()  # Используем sentnum
+    reader_list = np.unique(eyemovement_df.subid.values).tolist()  # Используем subid
 
     # Split training&test sets by text or reader
     if args.test_mode == 'text':

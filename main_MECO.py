@@ -76,7 +76,7 @@ if __name__ == '__main__':
           "atten_type": args.atten_type,
           "batch_size": 256,
           "max_sn_len": 50,  # Adjust based on MECO dataset
-          "max_sp_len": 60,  # Adjust based on MECO dataset
+          "max_sp_len": 350,  # Adjust based on MECO dataset
           "norm_type": "z-score",
           "earlystop_patience": 20,
           "max_pred_len": args.max_pred_len

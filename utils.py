@@ -184,14 +184,15 @@ def compute_BSC_word_length(sn_df):
 	return arr
 
 def pad_seq(seqs, max_len, pad_value, dtype=np.int64):
-	padded = np.full((len(seqs), max_len), fill_value=pad_value, dtype=dtype)
-	for i, seq in enumerate(seqs):
-		padded[i, 0] = 0
-		padded[i, 1:(len(seq)+1)] = seq
-		if pad_value !=0:
-			padded[i, len(seq)+1] = pad_value -1
-
-	return padded
+    padded = np.full((len(seqs), max_len), fill_value=pad_value, dtype=dtype)
+    for i, seq in enumerate(seqs):
+        # Обрезаем последовательность до max_len, если она слишком длинная
+        truncated_seq = seq[:max_len]
+        padded[i, 0] = 0
+        padded[i, 1:(len(truncated_seq)+1)] = truncated_seq
+        if pad_value != 0:
+            padded[i, len(truncated_seq)+1] = pad_value - 1
+    return padded
 
 def pad_seq_with_nan(seqs, max_len, dtype=np.int64):
 	padded = np.full((len(seqs), max_len), fill_value=np.nan, dtype=dtype)

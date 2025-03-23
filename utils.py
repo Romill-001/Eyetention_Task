@@ -21,8 +21,14 @@ def load_rda(file_path):
     Загружает данные из файла .rda и возвращает DataFrame.
     """
     result = pyreadr.read_r(file_path)
-    # Возвращаем первый элемент (DataFrame) из результата
-    return result[None]
+    
+    # Если файл содержит несколько объектов, возвращаем первый
+    if isinstance(result, dict):
+        # Возвращаем первый элемент (DataFrame) из результата
+        return list(result.values())[0]
+    else:
+        # Если файл содержит только один объект, возвращаем его
+        return result
 
 def load_bsc() -> Tuple[pd.DataFrame, ...]:
 	"""

@@ -52,10 +52,10 @@ def _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer,
     sub_id_list = []
     for sn_id in sn_list:
         # Обработка последовательности предложений
-        sn_df = eyemovement_df[eyemovement_df.sentnum == sn_id]
-        sn = word_info_df[word_info_df.sentnum == sn_id]
+        sn_df = eyemovement_df[eyemovement_df.sentnum == sn_id]  # Используем sentnum
+        sn = word_info_df[word_info_df.sentnum == sn_id]  # Используем sentnum
         sn_str = ' '.join(sn.word.values)  # Используем столбец 'word' для текста предложения
-        sn_word_len = compute_word_length_celer(sn.word.str.len().values)  # Вычисляем длину слов
+        sn_word_len = compute_word_length(sn.word.str.len().values)  # Вычисляем длину слов
 
         # Токенизация и паддинг
         tokenizer.padding_side = 'right'
@@ -70,7 +70,7 @@ def _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer,
 
         # Обработка последовательности фиксаций
         for sub_id in reader_list:
-            sub_df = sn_df[sn_df.subid == sub_id]
+            sub_df = sn_df[sn_df.subid == sub_id]  # Используем subid
             if len(sub_df) == 0:
                 # Нет данных о сканировании для субъекта
                 continue
@@ -626,7 +626,17 @@ def one_hot_encode(arr, dim):
 
 	return onehot_encoded
 
-
+def compute_word_length(word_lengths):
+    """
+    Вычисляет обратные длины слов для нормализации.
+    :param word_lengths: Массив длин слов.
+    :return: Массив обратных длин слов.
+    """
+    word_lengths = np.array(word_lengths, dtype=np.float32)
+    # Заменяем нулевые длины на 1 (например, для пунктуации)
+    word_lengths[word_lengths == 0] = 1
+    # Возвращаем обратные длины
+    return 1 / word_lengths
 
 def gradient_clipping(dnn_model, clip = 10):
 	torch.nn.utils.clip_grad_norm_(dnn_model.parameters(),clip)

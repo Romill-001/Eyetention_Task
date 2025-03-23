@@ -43,85 +43,87 @@ def load_bsc() -> Tuple[pd.DataFrame, ...]:
 	return word_info_df, pos_info_df, eyemovement_df
 
 def _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer, cf):
-    """
-    Обработка данных MECO для обучения модели.
-    """
     SN_input_ids, SN_attention_mask, SN_WORD_len = [], [], []
     SP_input_ids, SP_attention_mask = [], []
     SP_ordinal_pos, SP_landing_pos, SP_fix_dur = [], [], []
     sub_id_list = []
+    
     for sn_id in sn_list:
-        # Обработка последовательности предложений
+        # Фильтрация данных по предложению
         sn_df = eyemovement_df[eyemovement_df.sentnum == sn_id]  # Используем sentnum
-        sn = word_info_df[word_info_df.sentnum == sn_id]  # Используем sentnum
-        sn_str = ' '.join(sn.word.values)  # Используем столбец 'word' для текста предложения
-        sn_word_len = compute_word_length(sn.word.str.len().values)  # Вычисляем длину слов
-
-        # Токенизация и паддинг
-        tokenizer.padding_side = 'right'
-        tokens = tokenizer.encode_plus(sn_str,
-                                       add_special_tokens=True,
-                                       truncation=True,
-                                       max_length=cf["max_sn_len"],
-                                       padding='max_length',
-                                       return_attention_mask=True)
+        sn_words = word_info_df[word_info_df.sentnum == sn_id]   # Используем sentnum
+        
+        # Текст предложения
+        sn_str = ' '.join(sn_words.word.values)
+        
+        # Длины слов (нормализованные)
+        sn_word_len = compute_word_length(sn_words.word.str.len().values)
+        
+        # Токенизация предложения
+        tokens = tokenizer.encode_plus(
+            sn_str,
+            add_special_tokens=True,
+            truncation=True,
+            max_length=cf["max_sn_len"],
+            padding='max_length',
+            return_attention_mask=True
+        )
         encoded_sn = tokens["input_ids"]
         mask_sn = tokens["attention_mask"]
-
-        # Обработка последовательности фиксаций
+        
+        # Обработка фиксаций для каждого читателя
         for sub_id in reader_list:
             sub_df = sn_df[sn_df.subid == sub_id]  # Используем subid
             if len(sub_df) == 0:
-                # Нет данных о сканировании для субъекта
                 continue
-
-            sp_word_pos, sp_fix_loc, sp_fix_dur = sub_df.wordnum.values, sub_df.xn.values, sub_df.dur.values
-            sp_landing_pos_char = sp_fix_loc  # Используем xn для позиции фиксации
-            SP_landing_pos.append(sp_landing_pos_char)
-
-            # Преобразование порядковых позиций на основе слов в позиции на основе токенов
-            sp_ordinal_pos = sp_word_pos  # Используем wordnum для порядковых позиций
-            SP_ordinal_pos.append(sp_ordinal_pos)
+            
+            # Извлечение данных о фиксациях
+            sp_word_pos = sub_df.wordnum.values      # Позиция слова
+            sp_fix_loc = sub_df.xn.values            # Координата X фиксации
+            sp_fix_dur = sub_df.dur.values           # Длительность фиксации
+            
+            # Сохраняем данные
+            SP_ordinal_pos.append(sp_word_pos)
+            SP_landing_pos.append(sp_fix_loc)
             SP_fix_dur.append(sp_fix_dur)
-
-            # Токенизация и паддинг для последовательности фиксаций
-            sp_token = [sn.word.iloc[int(i - 1)] for i in sp_ordinal_pos]
-            sp_token_str = '[CLS]' + ' '.join(sp_token) + '[SEP]'
-            sp_tokens = tokenizer.encode_plus(sp_token_str,
-                                              add_special_tokens=False,
-                                              truncation=True,
-                                              max_length=cf["max_sp_len"],
-                                              padding='max_length',
-                                              return_attention_mask=True)
-            encoded_sp = sp_tokens["input_ids"]
-            mask_sp = sp_tokens["attention_mask"]
-            SP_input_ids.append(encoded_sp)
-            SP_attention_mask.append(mask_sp)
-
-            # Информация о предложении
+            
+            # Токенизация scanpath (последовательности фиксаций)
+            sp_token_str = '[CLS]' + ' '.join(sn_words.word.iloc[sp_word_pos - 1].values) + '[SEP]'
+            sp_tokens = tokenizer.encode_plus(
+                sp_token_str,
+                add_special_tokens=False,
+                truncation=True,
+                max_length=cf["max_sp_len"],
+                padding='max_length',
+                return_attention_mask=True
+            )
+            SP_input_ids.append(sp_tokens["input_ids"])
+            SP_attention_mask.append(sp_tokens["attention_mask"])
+            
+            # Сохраняем данные предложения
             SN_input_ids.append(encoded_sn)
             SN_attention_mask.append(mask_sn)
             SN_WORD_len.append(sn_word_len)
             sub_id_list.append(sub_id)
-
-    # Паддинг для вычислений в батчах
-    SP_ordinal_pos = pad_seq(SP_ordinal_pos, max_len=(cf["max_sp_len"]), pad_value=cf["max_sn_len"])
-    SP_fix_dur = pad_seq(SP_fix_dur, max_len=(cf["max_sp_len"]), pad_value=0)
+    
+    # Паддинг и преобразование типов
+    SP_ordinal_pos = pad_seq(SP_ordinal_pos, cf["max_sp_len"], pad_value=0)
+    SP_fix_dur = pad_seq(SP_fix_dur, cf["max_sp_len"], pad_value=0)
     SP_landing_pos = pad_seq(SP_landing_pos, cf["max_sp_len"], pad_value=0, dtype=np.float32)
     SN_WORD_len = pad_seq_with_nan(SN_WORD_len, cf["max_sn_len"], dtype=np.float32)
-
-    # Присвоение типов
-    SN_input_ids = np.asarray(SN_input_ids, dtype=np.int64)
-    SN_attention_mask = np.asarray(SN_attention_mask, dtype=np.float32)
-    SP_input_ids = np.asarray(SP_input_ids, dtype=np.int64)
-    SP_attention_mask = np.asarray(SP_attention_mask, dtype=np.float32)
-    sub_id_list = np.asarray(sub_id_list, dtype=np.int64)
-
-    data = {"SN_input_ids": SN_input_ids, "SN_attention_mask": SN_attention_mask, "SN_WORD_len": SN_WORD_len,
-            "SP_input_ids": SP_input_ids, "SP_attention_mask": SP_attention_mask,
-            "SP_ordinal_pos": np.array(SP_ordinal_pos), "SP_landing_pos": np.array(SP_landing_pos), "SP_fix_dur": np.array(SP_fix_dur),
-            "sub_id": sub_id_list}
-
+    
+    data = {
+        "SN_input_ids": np.array(SN_input_ids, dtype=np.int64),
+        "SN_attention_mask": np.array(SN_attention_mask, dtype=np.float32),
+        "SN_WORD_len": np.array(SN_WORD_len, dtype=np.float32),
+        "SP_input_ids": np.array(SP_input_ids, dtype=np.int64),
+        "SP_attention_mask": np.array(SP_attention_mask, dtype=np.float32),
+        "SP_ordinal_pos": np.array(SP_ordinal_pos, dtype=np.int64),
+        "SP_landing_pos": np.array(SP_landing_pos, dtype=np.float32),
+        "SP_fix_dur": np.array(SP_fix_dur, dtype=np.float32),
+        "sub_id": np.array(sub_id_list, dtype=np.int64)
+    }
+    
     return data
 
 class MECOdataset(Dataset):

@@ -42,117 +42,117 @@ def load_bsc() -> Tuple[pd.DataFrame, ...]:
 	eyemovement_df = pd.read_csv(bsc_emd_path, delimiter='\t')
 	return word_info_df, pos_info_df, eyemovement_df
 
-def _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer, cf):
-    SN_input_ids, SN_attention_mask, SN_WORD_len = [], [], []
-    SP_input_ids, SP_attention_mask = [], []
-    SP_ordinal_pos, SP_landing_pos, SP_fix_dur = [], [], []
-    sub_id_list = []
+# def _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer, cf):
+#     SN_input_ids, SN_attention_mask, SN_WORD_len = [], [], []
+#     SP_input_ids, SP_attention_mask = [], []
+#     SP_ordinal_pos, SP_landing_pos, SP_fix_dur = [], [], []
+#     sub_id_list = []
     
-    for sn_id in sn_list:
-        # Фильтрация данных по предложению
-        sn_df = eyemovement_df[eyemovement_df.sentnum == sn_id]  # Используем sentnum
-        sn_words = word_info_df[word_info_df.sentnum == sn_id]   # Используем sentnum
+#     for sn_id in sn_list:
+#         # Фильтрация данных по предложению
+#         sn_df = eyemovement_df[eyemovement_df.sentnum == sn_id]  # Используем sentnum
+#         sn_words = word_info_df[word_info_df.sentnum == sn_id]   # Используем sentnum
         
-        # Текст предложения
-        sn_str = ' '.join(sn_words.word.values)
+#         # Текст предложения
+#         sn_str = ' '.join(sn_words.word.values)
         
-        # Длины слов (нормализованные)
-        sn_word_len = compute_word_length(sn_words.word.str.len().values)
+#         # Длины слов (нормализованные)
+#         sn_word_len = compute_word_length(sn_words.word.str.len().values)
         
-        # Токенизация предложения
-        tokens = tokenizer.encode_plus(
-            sn_str,
-            add_special_tokens=True,
-            truncation=True,
-            max_length=cf["max_sn_len"],
-            padding='max_length',
-            return_attention_mask=True
-        )
-        encoded_sn = tokens["input_ids"]
-        mask_sn = tokens["attention_mask"]
+#         # Токенизация предложения
+#         tokens = tokenizer.encode_plus(
+#             sn_str,
+#             add_special_tokens=True,
+#             truncation=True,
+#             max_length=cf["max_sn_len"],
+#             padding='max_length',
+#             return_attention_mask=True
+#         )
+#         encoded_sn = tokens["input_ids"]
+#         mask_sn = tokens["attention_mask"]
         
-        # Обработка фиксаций для каждого читателя
-        for sub_id in reader_list:
-            sub_df = sn_df[sn_df.subid == sub_id]  # Используем subid
-            if len(sub_df) == 0:
-                continue
+#         # Обработка фиксаций для каждого читателя
+#         for sub_id in reader_list:
+#             sub_df = sn_df[sn_df.subid == sub_id]  # Используем subid
+#             if len(sub_df) == 0:
+#                 continue
             
-            # Извлечение данных о фиксациях
-            sp_word_pos = sub_df.wordnum.values      # Позиция слова
-            sp_fix_loc = sub_df.xn.values            # Координата X фиксации
-            sp_fix_dur = sub_df.dur.values           # Длительность фиксации
+#             # Извлечение данных о фиксациях
+#             sp_word_pos = sub_df.wordnum.values      # Позиция слова
+#             sp_fix_loc = sub_df.xn.values            # Координата X фиксации
+#             sp_fix_dur = sub_df.dur.values           # Длительность фиксации
             
-            # Сохраняем данные
-            SP_ordinal_pos.append(sp_word_pos)
-            SP_landing_pos.append(sp_fix_loc)
-            SP_fix_dur.append(sp_fix_dur)
+#             # Сохраняем данные
+#             SP_ordinal_pos.append(sp_word_pos)
+#             SP_landing_pos.append(sp_fix_loc)
+#             SP_fix_dur.append(sp_fix_dur)
             
-            # Токенизация scanpath (последовательности фиксаций)
-            sp_token_str = '[CLS]' + ' '.join(sn_words.word.iloc[sp_word_pos - 1].values) + '[SEP]'
-            sp_tokens = tokenizer.encode_plus(
-                sp_token_str,
-                add_special_tokens=False,
-                truncation=True,
-                max_length=cf["max_sp_len"],
-                padding='max_length',
-                return_attention_mask=True
-            )
-            SP_input_ids.append(sp_tokens["input_ids"])
-            SP_attention_mask.append(sp_tokens["attention_mask"])
+#             # Токенизация scanpath (последовательности фиксаций)
+#             sp_token_str = '[CLS]' + ' '.join(sn_words.word.iloc[sp_word_pos - 1].values) + '[SEP]'
+#             sp_tokens = tokenizer.encode_plus(
+#                 sp_token_str,
+#                 add_special_tokens=False,
+#                 truncation=True,
+#                 max_length=cf["max_sp_len"],
+#                 padding='max_length',
+#                 return_attention_mask=True
+#             )
+#             SP_input_ids.append(sp_tokens["input_ids"])
+#             SP_attention_mask.append(sp_tokens["attention_mask"])
             
-            # Сохраняем данные предложения
-            SN_input_ids.append(encoded_sn)
-            SN_attention_mask.append(mask_sn)
-            SN_WORD_len.append(sn_word_len)
-            sub_id_list.append(sub_id)
+#             # Сохраняем данные предложения
+#             SN_input_ids.append(encoded_sn)
+#             SN_attention_mask.append(mask_sn)
+#             SN_WORD_len.append(sn_word_len)
+#             sub_id_list.append(sub_id)
     
-    SP_ordinal_pos = pad_seq(SP_ordinal_pos, cf["max_sp_len"], pad_value=0)
-    SP_fix_dur = pad_seq(SP_fix_dur, cf["max_sp_len"], pad_value=0)
-    SP_landing_pos = pad_seq(SP_landing_pos, cf["max_sp_len"], pad_value=0, dtype=np.float32)
-    SN_WORD_len = pad_seq_with_nan(SN_WORD_len, cf["max_sn_len"], dtype=np.float32)
+#     SP_ordinal_pos = pad_seq(SP_ordinal_pos, cf["max_sp_len"], pad_value=0)
+#     SP_fix_dur = pad_seq(SP_fix_dur, cf["max_sp_len"], pad_value=0)
+#     SP_landing_pos = pad_seq(SP_landing_pos, cf["max_sp_len"], pad_value=0, dtype=np.float32)
+#     SN_WORD_len = pad_seq_with_nan(SN_WORD_len, cf["max_sn_len"], dtype=np.float32)
     
-    data = {
-        "SN_input_ids": np.array(SN_input_ids, dtype=np.int64),
-        "SN_attention_mask": np.array(SN_attention_mask, dtype=np.float32),
-        "SN_WORD_len": np.array(SN_WORD_len, dtype=np.float32),
-        "SP_input_ids": np.array(SP_input_ids, dtype=np.int64),
-        "SP_attention_mask": np.array(SP_attention_mask, dtype=np.float32),
-        "SP_ordinal_pos": np.array(SP_ordinal_pos, dtype=np.int64),
-        "SP_landing_pos": np.array(SP_landing_pos, dtype=np.float32),
-        "SP_fix_dur": np.array(SP_fix_dur, dtype=np.float32),
-        "sub_id": np.array(sub_id_list, dtype=np.int64)
-    }
+#     data = {
+#         "SN_input_ids": np.array(SN_input_ids, dtype=np.int64),
+#         "SN_attention_mask": np.array(SN_attention_mask, dtype=np.float32),
+#         "SN_WORD_len": np.array(SN_WORD_len, dtype=np.float32),
+#         "SP_input_ids": np.array(SP_input_ids, dtype=np.int64),
+#         "SP_attention_mask": np.array(SP_attention_mask, dtype=np.float32),
+#         "SP_ordinal_pos": np.array(SP_ordinal_pos, dtype=np.int64),
+#         "SP_landing_pos": np.array(SP_landing_pos, dtype=np.float32),
+#         "SP_fix_dur": np.array(SP_fix_dur, dtype=np.float32),
+#         "sub_id": np.array(sub_id_list, dtype=np.int64)
+#     }
     
-    return data
+#     return data
 
-class MECOdataset(Dataset):
-    """Return MECO dataset."""
+# class MECOdataset(Dataset):
+#     """Return MECO dataset."""
 
-    def __init__(
-        self,
-        word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer
-    ):
-        self.data = _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer, cf)
+#     def __init__(
+#         self,
+#         word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer
+#     ):
+#         self.data = _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer, cf)
 
-    def __len__(self):
-        return len(self.data["SN_input_ids"])
+#     def __len__(self):
+#         return len(self.data["SN_input_ids"])
 
-    def __getitem__(self, idx):
-        sample = {}
-        sample["sn_input_ids"] = self.data["SN_input_ids"][idx, :]
-        sample["sn_attention_mask"] = self.data["SN_attention_mask"][idx, :]
-        sample["sn_word_len"] = self.data['SN_WORD_len'][idx, :]
+#     def __getitem__(self, idx):
+#         sample = {}
+#         sample["sn_input_ids"] = self.data["SN_input_ids"][idx, :]
+#         sample["sn_attention_mask"] = self.data["SN_attention_mask"][idx, :]
+#         sample["sn_word_len"] = self.data['SN_WORD_len'][idx, :]
 
-        sample["sp_input_ids"] = self.data["SP_input_ids"][idx, :]
-        sample["sp_attention_mask"] = self.data["SP_attention_mask"][idx, :]
+#         sample["sp_input_ids"] = self.data["SP_input_ids"][idx, :]
+#         sample["sp_attention_mask"] = self.data["SP_attention_mask"][idx, :]
 
-        sample["sp_pos"] = self.data["SP_ordinal_pos"][idx, :]
-        sample["sp_fix_dur"] = self.data["SP_fix_dur"][idx, :]
-        sample["sp_landing_pos"] = self.data["SP_landing_pos"][idx, :]
+#         sample["sp_pos"] = self.data["SP_ordinal_pos"][idx, :]
+#         sample["sp_fix_dur"] = self.data["SP_fix_dur"][idx, :]
+#         sample["sp_landing_pos"] = self.data["SP_landing_pos"][idx, :]
 
-        sample["sub_id"] = self.data["sub_id"][idx]
+#         sample["sub_id"] = self.data["sub_id"][idx]
 
-        return sample
+#         return sample
 
 def load_corpus(corpus, task=None):
     if corpus == 'BSC':
@@ -164,12 +164,12 @@ def load_corpus(corpus, task=None):
         word_info_df = pd.read_csv('./Data/celer/data_v2.0/sent_ia.tsv', delimiter='\t')
         word_info_df['IA_LABEL'] = word_info_df.IA_LABEL.replace('\t(.*)', '', regex=True)
         return word_info_df, None, eyemovement_df
-    elif corpus == 'MECO':
-        # Загрузка данных MECO из файлов .rda
-        data_path = './Data/MECO/'
-        word_info_df = load_rda(os.path.join(data_path, 'joint_data_trimmed_L2_wave2_2025_01_03.rda'))
-        eyemovement_df = load_rda(os.path.join(data_path, 'joint_fix_trimmed_L2_wave2.rda'))
-        return word_info_df, None, eyemovement_df
+    # elif corpus == 'MECO':
+    #     # Загрузка данных MECO из файлов .rda
+    #     data_path = './Data/MECO/'
+    #     word_info_df = load_rda(os.path.join(data_path, 'joint_data_trimmed_L2_wave2_2025_01_03.rda'))
+    #     eyemovement_df = load_rda(os.path.join(data_path, 'joint_fix_trimmed_L2_wave2.rda'))
+    #     return word_info_df, None, eyemovement_df
 
 def compute_BSC_word_length(sn_df):
 	word_len = sn_df.LEN.values

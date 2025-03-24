@@ -106,7 +106,6 @@ def _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer,
             SN_WORD_len.append(sn_word_len)
             sub_id_list.append(sub_id)
     
-    # Паддинг и преобразование типов
     SP_ordinal_pos = pad_seq(SP_ordinal_pos, cf["max_sp_len"], pad_value=0)
     SP_fix_dur = pad_seq(SP_fix_dur, cf["max_sp_len"], pad_value=0)
     SP_landing_pos = pad_seq(SP_landing_pos, cf["max_sp_len"], pad_value=0, dtype=np.float32)
@@ -186,12 +185,10 @@ def compute_BSC_word_length(sn_df):
 def pad_seq(seqs, max_len, pad_value, dtype=np.int64):
     padded = np.full((len(seqs), max_len), fill_value=pad_value, dtype=dtype)
     for i, seq in enumerate(seqs):
-        # Обрезаем последовательность до max_len, если она слишком длинная
+        # Обрезаем последовательность до max_len
         truncated_seq = seq[:max_len]
-        padded[i, 0] = 0
-        padded[i, 1:(len(truncated_seq)+1)] = truncated_seq
-        if pad_value != 0:
-            padded[i, len(truncated_seq)+1] = pad_value - 1
+        # Заполняем массив
+        padded[i, :len(truncated_seq)] = truncated_seq  # Без смещения на 1
     return padded
 
 def pad_seq_with_nan(seqs, max_len, dtype=np.int64):

@@ -62,11 +62,13 @@ def pad_seq(seqs, max_len, pad_value, dtype=np.int64):
         padded[i, :len(truncated_seq)] = truncated_seq
     return padded
 
-def pad_seq_with_nan(seqs, max_len, dtype=np.int64):
-	padded = np.full((len(seqs), max_len), fill_value=np.nan, dtype=dtype)
-	for i, seq in enumerate(seqs):
-		padded[i, 1:(len(seq)+1)] = seq
-	return padded
+def pad_seq_with_nan(seqs, max_len, dtype=np.float32, fill_value=np.nan):
+    padded = np.full((len(seqs), max_len), fill_value=fill_value, dtype=dtype)
+    for i, seq in enumerate(seqs):
+        # Берём только первые `max_len` элементов, если последовательность слишком длинная
+        truncated_seq = seq[:max_len]
+        padded[i, :len(truncated_seq)] = truncated_seq
+    return padded
 
 def _process_BSC_corpus(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer, cf):
 	"""

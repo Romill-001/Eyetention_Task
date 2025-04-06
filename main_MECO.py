@@ -91,7 +91,9 @@ if __name__ == '__main__':
     # Load corpus with proper column names for MECO
     word_info_df, pos_info_df, eyemovement_df = load_corpus(cf["dataset"])
     
-    eyemovement_df['subid'] = (eyemovement_df['subid'].str.replace(r'\D+', '', regex=True).astype(int))
+    eyemovement_df['subid'] = pd.to_numeric(
+    eyemovement_df['subid'].str.replace(r'\D+', '', regex=True), 
+    errors='coerce')
     # Rename columns to match expected names in the model
     eyemovement_df = eyemovement_df.rename(columns={
         'word_position': 'wn',

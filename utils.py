@@ -40,7 +40,7 @@ def load_corpus(corpus, task=None):
 		word_info_df['IA_LABEL'] = word_info_df.IA_LABEL.replace('\t(.*)', '', regex=True)
 		return word_info_df, None, eyemovement_df
 	elif corpus == 'MECO':
-		word_info_df = pd.read_csv('./Data/MECO/eyemovement.csv')
+		eyemovement_df = pd.read_csv('./Data/MECO/eyemovement.csv')
 		word_info_df = pd.read_csv('./Data/MECO/word_info.csv')
 		return word_info_df, None, eyemovement_df
 

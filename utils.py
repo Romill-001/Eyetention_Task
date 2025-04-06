@@ -513,7 +513,7 @@ def gradient_clipping(dnn_model, clip = 10):
 	torch.nn.utils.clip_grad_norm_(dnn_model.parameters(),clip)
 
 
-def _process_meco(self, word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer):
+def _process_meco(word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer):
     # Проверка и переименование колонок
     required_columns = {
         'subid': ['subid', 'subject', 'participant'],

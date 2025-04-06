@@ -513,10 +513,33 @@ def gradient_clipping(dnn_model, clip = 10):
 	torch.nn.utils.clip_grad_norm_(dnn_model.parameters(),clip)
 
 
-def _process_meco(word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer):
-    # Удаление дубликатов
-    word_info_df = word_info_df.drop_duplicates(['sentnum', 'word_position'])
-    eyemovement_df = eyemovement_df.drop_duplicates(['subid', 'sentnum', 'word_position'])
+def _process_meco(self, word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer):
+    # Проверка и переименование колонок
+    required_columns = {
+        'subid': ['subid', 'subject', 'participant'],
+        'sentnum': ['sentnum', 'trialid', 'sentence_id'],
+        'word_position': ['word_position', 'wordnum', 'word_id'],
+        'landing_pos_norm': ['landing_pos_norm', 'xn', 'landing_position'],
+        'fixation_dur': ['fixation_dur', 'dur', 'duration']
+    }
+    
+    # Найдем существующие колонки
+    column_mapping = {}
+    for target_col, possible_cols in required_columns.items():
+        for col in possible_cols:
+            if col in eyemovement_df.columns:
+                column_mapping[target_col] = col
+                break
+        else:
+            raise ValueError(f"Не найдена подходящая колонка для {target_col}. Доступные колонки: {eyemovement_df.columns.tolist()}")
+    
+    # Переименуем колонки
+    eyemovement_df = eyemovement_df.rename(columns=column_mapping)
+    
+    # Удаление дубликатов по ключевым полям
+    eyemovement_df = eyemovement_df.drop_duplicates(
+        subset=['subid', 'sentnum', 'word_position']
+    ).copy()
     
     SN_input_ids, SN_attention_mask, SN_WORD_len = [], [], []
     SP_input_ids, SP_attention_mask = [], []

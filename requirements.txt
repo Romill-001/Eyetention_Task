@@ -6,3 +6,5 @@ seaborn
 torch
 tqdm
 transformers
+Levenshtein
+LAC

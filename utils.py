@@ -514,26 +514,16 @@ def gradient_clipping(dnn_model, clip = 10):
 
 
 def _process_meco(word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer):
-    # Проверка и переименование колонок
-    required_columns = {
-        'subid': ['subid', 'subject', 'participant'],
-        'sentnum': ['sentnum', 'trialid', 'sentence_id'],
-        'word_position': ['word_position', 'wordnum', 'word_id'],
-        'landing_pos_norm': ['landing_pos_norm', 'xn', 'landing_position'],
-        'fixation_dur': ['fixation_dur', 'dur', 'duration']
+    # Сопоставление фактических названий столбцов с ожидаемыми
+    column_mapping = {
+        'id': 'subid',        # ID читателя
+        'sn': 'sentnum',      # ID предложения
+        'wn': 'word_position', # Позиция слова
+        'fl': 'landing_pos_norm', # Нормализованная позиция фиксации
+        'dur': 'fixation_dur'  # Длительность фиксации
     }
     
-    # Найдем существующие колонки
-    column_mapping = {}
-    for target_col, possible_cols in required_columns.items():
-        for col in possible_cols:
-            if col in eyemovement_df.columns:
-                column_mapping[target_col] = col
-                break
-        else:
-            raise ValueError(f"Не найдена подходящая колонка для {target_col}. Доступные колонки: {eyemovement_df.columns.tolist()}")
-    
-    # Переименуем колонки
+    # Переименовываем колонки
     eyemovement_df = eyemovement_df.rename(columns=column_mapping)
     
     # Удаление дубликатов по ключевым полям

@@ -11,11 +11,21 @@ import seaborn as sns
 from LAC import LAC
 
 def compute_word_length(txt):
-    txt_word_len = [len(t) for t in txt[1:-1]]
-    txt_word_len = [np.nan] + txt_word_len + [np.nan]
-    arr = np.array(txt_word_len).astype('float64')
-    arr[arr==0] = 1/(0+0.5)
-    arr[arr!=0] = 1/(arr[arr!=0])
+    if isinstance(txt, str):
+        word_lengths = [len(word) for word in txt.split()]
+    elif isinstance(txt, (list, np.ndarray)) and all(isinstance(x, str) for x in txt):
+        word_lengths = [len(word) for word in txt]
+    elif isinstance(txt, (list, np.ndarray)) and all(isinstance(x, (int, float, np.integer, np.floating)) for x in txt):
+        word_lengths = list(txt)
+    else:
+        raise ValueError("Неподдерживаемый тип входных данных. Ожидается строка, список слов или массив длин слов.")
+    
+    word_lengths = [np.nan] + word_lengths + [np.nan]
+    arr = np.array(word_lengths, dtype=np.float64)
+    
+    arr[arr == 0] = 1/(0 + 0.5)
+    arr[arr != 0] = 1/arr[arr != 0]
+    
     return arr
 
 def pad_seq(seqs, max_len, dtype=np.int32, fill_value=np.nan):

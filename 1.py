@@ -1,6 +1,6 @@
 from utils import *
+from config import *
 
-word_info_df, _, eyemovement_df = load_corpus("MECO")
-print("Столбцы в eyemovement_df:", eyemovement_df.columns.tolist())
-print("Столбцы в word_info_df:", word_info_df.columns.tolist())
+test_lengths = np.array([1, 2, 3])
+print(compute_word_length(test_lengths).shape)
 

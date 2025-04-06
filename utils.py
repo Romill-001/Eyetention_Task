@@ -15,20 +15,7 @@ import json
 from collections import Counter
 import torch.nn as nn
 import pyreadr
-
-def load_rda(file_path):
-    """
-    Загружает данные из файла .rda и возвращает DataFrame.
-    """
-    result = pyreadr.read_r(file_path)
-    
-    # Если файл содержит несколько объектов, возвращаем первый
-    if isinstance(result, dict):
-        # Возвращаем первый элемент (DataFrame) из результата
-        return list(result.values())[0]
-    else:
-        # Если файл содержит только один объект, возвращаем его
-        return result
+from config import *
 
 def load_bsc() -> Tuple[pd.DataFrame, ...]:
 	"""
@@ -42,134 +29,21 @@ def load_bsc() -> Tuple[pd.DataFrame, ...]:
 	eyemovement_df = pd.read_csv(bsc_emd_path, delimiter='\t')
 	return word_info_df, pos_info_df, eyemovement_df
 
-# def _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer, cf):
-#     SN_input_ids, SN_attention_mask, SN_WORD_len = [], [], []
-#     SP_input_ids, SP_attention_mask = [], []
-#     SP_ordinal_pos, SP_landing_pos, SP_fix_dur = [], [], []
-#     sub_id_list = []
-    
-#     for sn_id in sn_list:
-#         # Фильтрация данных по предложению
-#         sn_df = eyemovement_df[eyemovement_df.sentnum == sn_id]  # Используем sentnum
-#         sn_words = word_info_df[word_info_df.sentnum == sn_id]   # Используем sentnum
-        
-#         # Текст предложения
-#         sn_str = ' '.join(sn_words.word.values)
-        
-#         # Длины слов (нормализованные)
-#         sn_word_len = compute_word_length(sn_words.word.str.len().values)
-        
-#         # Токенизация предложения
-#         tokens = tokenizer.encode_plus(
-#             sn_str,
-#             add_special_tokens=True,
-#             truncation=True,
-#             max_length=cf["max_sn_len"],
-#             padding='max_length',
-#             return_attention_mask=True
-#         )
-#         encoded_sn = tokens["input_ids"]
-#         mask_sn = tokens["attention_mask"]
-        
-#         # Обработка фиксаций для каждого читателя
-#         for sub_id in reader_list:
-#             sub_df = sn_df[sn_df.subid == sub_id]  # Используем subid
-#             if len(sub_df) == 0:
-#                 continue
-            
-#             # Извлечение данных о фиксациях
-#             sp_word_pos = sub_df.wordnum.values      # Позиция слова
-#             sp_fix_loc = sub_df.xn.values            # Координата X фиксации
-#             sp_fix_dur = sub_df.dur.values           # Длительность фиксации
-            
-#             # Сохраняем данные
-#             SP_ordinal_pos.append(sp_word_pos)
-#             SP_landing_pos.append(sp_fix_loc)
-#             SP_fix_dur.append(sp_fix_dur)
-            
-#             # Токенизация scanpath (последовательности фиксаций)
-#             sp_token_str = '[CLS]' + ' '.join(sn_words.word.iloc[sp_word_pos - 1].values) + '[SEP]'
-#             sp_tokens = tokenizer.encode_plus(
-#                 sp_token_str,
-#                 add_special_tokens=False,
-#                 truncation=True,
-#                 max_length=cf["max_sp_len"],
-#                 padding='max_length',
-#                 return_attention_mask=True
-#             )
-#             SP_input_ids.append(sp_tokens["input_ids"])
-#             SP_attention_mask.append(sp_tokens["attention_mask"])
-            
-#             # Сохраняем данные предложения
-#             SN_input_ids.append(encoded_sn)
-#             SN_attention_mask.append(mask_sn)
-#             SN_WORD_len.append(sn_word_len)
-#             sub_id_list.append(sub_id)
-    
-#     SP_ordinal_pos = pad_seq(SP_ordinal_pos, cf["max_sp_len"], pad_value=0)
-#     SP_fix_dur = pad_seq(SP_fix_dur, cf["max_sp_len"], pad_value=0)
-#     SP_landing_pos = pad_seq(SP_landing_pos, cf["max_sp_len"], pad_value=0, dtype=np.float32)
-#     SN_WORD_len = pad_seq_with_nan(SN_WORD_len, cf["max_sn_len"], dtype=np.float32)
-    
-#     data = {
-#         "SN_input_ids": np.array(SN_input_ids, dtype=np.int64),
-#         "SN_attention_mask": np.array(SN_attention_mask, dtype=np.float32),
-#         "SN_WORD_len": np.array(SN_WORD_len, dtype=np.float32),
-#         "SP_input_ids": np.array(SP_input_ids, dtype=np.int64),
-#         "SP_attention_mask": np.array(SP_attention_mask, dtype=np.float32),
-#         "SP_ordinal_pos": np.array(SP_ordinal_pos, dtype=np.int64),
-#         "SP_landing_pos": np.array(SP_landing_pos, dtype=np.float32),
-#         "SP_fix_dur": np.array(SP_fix_dur, dtype=np.float32),
-#         "sub_id": np.array(sub_id_list, dtype=np.int64)
-#     }
-    
-#     return data
-
-# class MECOdataset(Dataset):
-#     """Return MECO dataset."""
-
-#     def __init__(
-#         self,
-#         word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer
-#     ):
-#         self.data = _process_meco(sn_list, reader_list, word_info_df, eyemovement_df, tokenizer, cf)
-
-#     def __len__(self):
-#         return len(self.data["SN_input_ids"])
-
-#     def __getitem__(self, idx):
-#         sample = {}
-#         sample["sn_input_ids"] = self.data["SN_input_ids"][idx, :]
-#         sample["sn_attention_mask"] = self.data["SN_attention_mask"][idx, :]
-#         sample["sn_word_len"] = self.data['SN_WORD_len'][idx, :]
-
-#         sample["sp_input_ids"] = self.data["SP_input_ids"][idx, :]
-#         sample["sp_attention_mask"] = self.data["SP_attention_mask"][idx, :]
-
-#         sample["sp_pos"] = self.data["SP_ordinal_pos"][idx, :]
-#         sample["sp_fix_dur"] = self.data["SP_fix_dur"][idx, :]
-#         sample["sp_landing_pos"] = self.data["SP_landing_pos"][idx, :]
-
-#         sample["sub_id"] = self.data["sub_id"][idx]
-
-#         return sample
 
 def load_corpus(corpus, task=None):
-    if corpus == 'BSC':
-        word_info_df, pos_info_df, eyemovement_df = load_bsc()
-        return word_info_df, pos_info_df, eyemovement_df
-    elif corpus == 'celer':
-        eyemovement_df = pd.read_csv('./Data/celer/data_v2.0/sent_fix.tsv', delimiter='\t')
-        eyemovement_df['CURRENT_FIX_INTEREST_AREA_LABEL'] = eyemovement_df.CURRENT_FIX_INTEREST_AREA_LABEL.replace('\t(.*)', '', regex=True)
-        word_info_df = pd.read_csv('./Data/celer/data_v2.0/sent_ia.tsv', delimiter='\t')
-        word_info_df['IA_LABEL'] = word_info_df.IA_LABEL.replace('\t(.*)', '', regex=True)
-        return word_info_df, None, eyemovement_df
-    # elif corpus == 'MECO':
-    #     # Загрузка данных MECO из файлов .rda
-    #     data_path = './Data/MECO/'
-    #     word_info_df = load_rda(os.path.join(data_path, 'joint_data_trimmed_L2_wave2_2025_01_03.rda'))
-    #     eyemovement_df = load_rda(os.path.join(data_path, 'joint_fix_trimmed_L2_wave2.rda'))
-    #     return word_info_df, None, eyemovement_df
+	if corpus == 'BSC':
+		word_info_df, pos_info_df, eyemovement_df = load_bsc()
+		return word_info_df, pos_info_df, eyemovement_df
+	elif corpus == 'celer':
+		eyemovement_df = pd.read_csv('./Data/celer/data_v2.0/sent_fix.tsv', delimiter='\t')
+		eyemovement_df['CURRENT_FIX_INTEREST_AREA_LABEL'] = eyemovement_df.CURRENT_FIX_INTEREST_AREA_LABEL.replace('\t(.*)', '', regex=True)
+		word_info_df = pd.read_csv('./Data/celer/data_v2.0/sent_ia.tsv', delimiter='\t')
+		word_info_df['IA_LABEL'] = word_info_df.IA_LABEL.replace('\t(.*)', '', regex=True)
+		return word_info_df, None, eyemovement_df
+	elif corpus == 'MECO':
+		word_info_df = pd.read_csv('./Data/MECO/eyemovemnt.csv')
+		word_info_df = pd.read_csv('./Data/MECO/word_info.csv')
+		return word_info_df, None, eyemovement_df
 
 def compute_BSC_word_length(sn_df):
 	word_len = sn_df.LEN.values
@@ -185,10 +59,8 @@ def compute_BSC_word_length(sn_df):
 def pad_seq(seqs, max_len, pad_value, dtype=np.int64):
     padded = np.full((len(seqs), max_len), fill_value=pad_value, dtype=dtype)
     for i, seq in enumerate(seqs):
-        # Обрезаем последовательность до max_len
         truncated_seq = seq[:max_len]
-        # Заполняем массив
-        padded[i, :len(truncated_seq)] = truncated_seq  # Без смещения на 1
+        padded[i, :len(truncated_seq)] = truncated_seq
     return padded
 
 def pad_seq_with_nan(seqs, max_len, dtype=np.int64):
@@ -640,3 +512,133 @@ def compute_word_length(word_lengths):
 
 def gradient_clipping(dnn_model, clip = 10):
 	torch.nn.utils.clip_grad_norm_(dnn_model.parameters(),clip)
+
+
+def _process_meco(word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer):
+    # Удаление дубликатов
+    word_info_df = word_info_df.drop_duplicates(['sentnum', 'word_position'])
+    eyemovement_df = eyemovement_df.drop_duplicates(['subid', 'sentnum', 'word_position'])
+    
+    SN_input_ids, SN_attention_mask, SN_WORD_len = [], [], []
+    SP_input_ids, SP_attention_mask = [], []
+    SP_ordinal_pos, SP_landing_pos, SP_fix_dur = [], [], []
+    sub_id_list = []
+    
+    for sn_id in sn_list:
+        # Process sentence
+        sn_df = eyemovement_df[eyemovement_df.sentnum == sn_id].copy()
+        sn_words = word_info_df[word_info_df.sentnum == sn_id].copy()
+        
+        # Проверка наличия данных
+        if len(sn_words) == 0:
+            continue
+            
+        sn_str = ' '.join(sn_words.word.astype(str).values)
+        
+        # Compute word lengths
+        sn_word_len = compute_word_length(sn_words.word.str.len().values)
+        
+        # Tokenize sentence
+        tokens = tokenizer.encode_plus(
+            sn_str,
+            add_special_tokens=True,
+            truncation=True,
+            max_length=cf["max_sn_len"],
+            padding='max_length',
+            return_attention_mask=True
+        )
+        encoded_sn = tokens["input_ids"]
+        mask_sn = tokens["attention_mask"]
+        
+        # Process fixations for each reader
+        for sub_id in reader_list:
+            sub_df = sn_df[sn_df.subid == sub_id].copy()
+            if len(sub_df) == 0:
+                continue
+            
+            # Приведение типов
+            sub_df = sub_df.astype({
+                'word_position': 'int32',
+                'landing_pos_norm': 'float32',
+                'fixation_dur': 'float32'
+            })
+            
+            # Get fixation data
+            sp_word_pos = sub_df.word_position.values
+            sp_fix_loc = sub_df.landing_pos_norm.values
+            sp_fix_dur = sub_df.fixation_dur.values
+            
+            # Store fixation data
+            SP_ordinal_pos.append(sp_word_pos)
+            SP_landing_pos.append(sp_fix_loc)
+            SP_fix_dur.append(sp_fix_dur)
+            
+            # Tokenize scanpath (с защитой от выхода за границы)
+            valid_positions = [p-1 for p in sp_word_pos if 0 < p <= len(sn_words)]
+            sp_token_str = '[CLS] ' + ' '.join(sn_words.word.iloc[valid_positions].values) + ' [SEP]'
+            
+            sp_tokens = tokenizer.encode_plus(
+                sp_token_str,
+                add_special_tokens=False,
+                truncation=True,
+                max_length=cf["max_sp_len"],
+                padding='max_length',
+                return_attention_mask=True
+            )
+            SP_input_ids.append(sp_tokens["input_ids"])
+            SP_attention_mask.append(sp_tokens["attention_mask"])
+            
+            # Store sentence data
+            SN_input_ids.append(encoded_sn)
+            SN_attention_mask.append(mask_sn)
+            SN_WORD_len.append(sn_word_len)
+            sub_id_list.append(sub_id)
+    
+    # Pad sequences
+    SP_ordinal_pos = pad_seq(SP_ordinal_pos, cf["max_sp_len"], pad_value=0)
+    SP_fix_dur = pad_seq(SP_fix_dur, cf["max_sp_len"], pad_value=0)
+    SP_landing_pos = pad_seq(SP_landing_pos, cf["max_sp_len"], pad_value=0, dtype=np.float32)
+    SN_WORD_len = pad_seq_with_nan(SN_WORD_len, cf["max_sn_len"], dtype=np.float32)
+    
+    return {
+        "SN_input_ids": np.array(SN_input_ids, dtype=np.int64),
+        "SN_attention_mask": np.array(SN_attention_mask, dtype=np.float32),
+        "SN_WORD_len": np.array(SN_WORD_len, dtype=np.float32),
+        "SP_input_ids": np.array(SP_input_ids, dtype=np.int64),
+        "SP_attention_mask": np.array(SP_attention_mask, dtype=np.float32),
+        "SP_ordinal_pos": np.array(SP_ordinal_pos, dtype=np.int64),
+        "SP_landing_pos": np.array(SP_landing_pos, dtype=np.float32),
+        "SP_fix_dur": np.array(SP_fix_dur, dtype=np.float32),
+        "sub_id": np.array(sub_id_list, dtype=np.int64)
+    }
+
+class MECOdataset(Dataset):
+    """Dataset class for MECO data"""
+    
+    def __init__(self, word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer):
+        self.data = _process_meco(word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer)
+        self.cf = cf
+    
+    def __len__(self):
+        return len(self.data["SN_input_ids"])
+    
+    def __getitem__(self, idx):
+        item = {
+            "sn_input_ids": torch.tensor(self.data["SN_input_ids"][idx, :]),
+            "sn_attention_mask": torch.tensor(self.data["SN_attention_mask"][idx, :]),
+            "sn_word_len": torch.tensor(self.data['SN_WORD_len'][idx, :]),
+            "sp_input_ids": torch.tensor(self.data["SP_input_ids"][idx, :]),
+            "sp_attention_mask": torch.tensor(self.data["SP_attention_mask"][idx, :]),
+            "sp_pos": torch.tensor(self.data["SP_ordinal_pos"][idx, :]),
+            "sp_fix_dur": torch.tensor(self.data["SP_fix_dur"][idx, :]),
+            "sp_landing_pos": torch.tensor(self.data["SP_landing_pos"][idx, :]),
+            "sub_id": torch.tensor(self.data["sub_id"][idx])
+        }
+        
+        # Нормализация gaze features
+        mask = ~torch.eq(item["sp_fix_dur"], 0)
+        item["sp_fix_dur"] = (item["sp_fix_dur"]/1000 - self.cf['fix_dur_mean'])/self.cf['fix_dur_std'] * mask
+        item["sp_landing_pos"] = (item["sp_landing_pos"] - self.cf['landing_pos_mean'])/self.cf['landing_pos_std'] * mask
+        item["sn_word_len"] = (item["sn_word_len"] - self.cf['sn_word_len_mean'])/self.cf['sn_word_len_std']
+        
+        return item

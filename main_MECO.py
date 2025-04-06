@@ -100,6 +100,7 @@ if __name__ == '__main__':
         'sentnum': 'sn'
     })
     
+    eyemovement_df['subid'] = eyemovement_df['subid'].str.replace('du_', '').astype(int)
     # Make list with sentence index
     sn_list = np.unique(eyemovement_df['sn'].values).tolist()
     # Make list with reader index

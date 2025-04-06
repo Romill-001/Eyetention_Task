@@ -14,7 +14,6 @@ from tqdm import tqdm
 import json
 from collections import Counter
 import torch.nn as nn
-import pyreadr
 from config import *
 
 def load_bsc() -> Tuple[pd.DataFrame, ...]:

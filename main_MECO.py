@@ -91,6 +91,7 @@ if __name__ == '__main__':
     # Load corpus with proper column names for MECO
     word_info_df, pos_info_df, eyemovement_df = load_corpus(cf["dataset"])
     
+    eyemovement_df['subid'] = eyemovement_df['subid'].str.replace('du_', '').astype(int)
     # Rename columns to match expected names in the model
     eyemovement_df = eyemovement_df.rename(columns={
         'word_position': 'wn',
@@ -100,7 +101,6 @@ if __name__ == '__main__':
         'sentnum': 'sn'
     })
     
-    eyemovement_df['subid'] = eyemovement_df['subid'].str.replace('du_', '').astype(int)
     # Make list with sentence index
     sn_list = np.unique(eyemovement_df['sn'].values).tolist()
     # Make list with reader index

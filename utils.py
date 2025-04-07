@@ -215,19 +215,39 @@ def calculate_mean_std(dataloader, feat_key, padding_value=0, scale=1):
 	return feat_mean, feat_std
 
 def load_label(sp_pos, cf, labelencoder, device):
-	#prepare label and mask
-	pad_mask = torch.eq(sp_pos[:, 1:], cf["max_sn_len"])
-	end_mask = torch.eq(sp_pos[:, 1:], cf["max_sn_len"]-1)
-	mask = pad_mask + end_mask
-	sac_amp = sp_pos[:, 1:] - sp_pos[:, :-1]
-	label = sp_pos[:, 1:]*mask + sac_amp*~mask
-	label = torch.where(label>cf["max_sn_len"]-1, cf["max_sn_len"]-1, label).to('cpu').detach().numpy()
-	label = labelencoder.transform(label.reshape(-1)).reshape(label.shape[0], label.shape[1])
-	if device == 'cpu':
-		pad_mask = pad_mask.to('cpu').detach().numpy()
-	else:
-		label = torch.from_numpy(label).to(device)
-	return pad_mask, label
+    # Prepare label and mask
+    pad_mask = torch.eq(sp_pos[:, 1:], cf["max_sn_len"])
+    end_mask = torch.eq(sp_pos[:, 1:], cf["max_sn_len"]-1)
+    mask = pad_mask + end_mask
+    sac_amp = sp_pos[:, 1:] - sp_pos[:, :-1]
+    
+    # Create label with clipping
+    label = sp_pos[:, 1:]*mask + sac_amp*~mask
+    label = torch.where(label > cf["max_sn_len"]-1, cf["max_sn_len"]-1, label)
+    
+    # Convert to numpy
+    label_np = label.to('cpu').detach().numpy()
+    
+    # Handle unknown labels
+    known_mask = np.isin(label_np, labelencoder.classes_)
+    label_np[~known_mask] = -1  # Replace unknown with -1 or other special value
+    
+    # Transform labels
+    try:
+        label_encoded = labelencoder.transform(label_np.reshape(-1)).reshape(label_np.shape)
+    except ValueError as e:
+        print(f"Error in label encoding: {e}")
+        print(f"Unique labels in data: {np.unique(label_np)}")
+        print(f"Encoder classes: {labelencoder.classes_}")
+        raise
+    
+    # Prepare output
+    if device == 'cpu':
+        pad_mask = pad_mask.to('cpu').detach().numpy()
+    else:
+        label_encoded = torch.from_numpy(label_encoded).to(device)
+    
+    return pad_mask, label_encoded
 
 
 def likelihood(pred, label, mask):

@@ -86,7 +86,8 @@ if __name__ == '__main__':
 
     # Encode the label into integer categories
     le = LabelEncoder()
-    le.fit(np.append(np.arange(-cf["max_sn_len"]+3, cf["max_sn_len"]-1), cf["max_sn_len"]-1))
+    valid_labels = np.arange(-cf["max_sn_len"]+3, cf["max_sn_len"])
+    le.fit(np.unique(valid_labels))
 
     # Load corpus with proper column names for MECO
     word_info_df, pos_info_df, eyemovement_df = load_corpus(cf["dataset"])
@@ -286,6 +287,9 @@ if __name__ == '__main__':
         dnn.to(device)
         
         for batch in test_dataloader:
+            if torch.isnan(batch["sp_fix_dur"]).any():
+                print("NaN detected in sp_fix_dur!")
+                continue
             with torch.no_grad():
                 batch = {k: v.to(device) for k, v in batch.items()}
                 

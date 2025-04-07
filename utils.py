@@ -193,26 +193,17 @@ class BSCdataset(Dataset):
 		return sample
 
 def calculate_mean_std(dataloader, feat_key, padding_value=0, scale=1):
-	#calculate mean
-	total_sum = 0
-	total_num = 0
-	for batchh in dataloader:
-		batchh.keys()
-		feat = batchh[feat_key]/scale
-		feat = torch.nan_to_num(feat)
-		total_num += len(feat.view(-1).nonzero())
-		total_sum += feat.sum()
-	feat_mean = total_sum / total_num
-	#calculate std
-	sum_of_squared_error = 0
-	for batchh in dataloader:
-		batchh.keys()
-		feat = batchh[feat_key]/scale
-		feat = torch.nan_to_num(feat)
-		mask = ~torch.eq(feat, padding_value)
-		sum_of_squared_error += (((feat - feat_mean).pow(2))*mask).sum()
-	feat_std = torch.sqrt(sum_of_squared_error / total_num)
-	return feat_mean, feat_std
+    values = []
+    for batch in dataloader:
+        feat = batch[feat_key]
+        mask = feat != padding_value
+        values.extend(feat[mask].cpu().numpy() / scale)
+    
+    if len(values) == 0:
+        print(f"Warning: no valid values for {feat_key}")
+        return 0.0, 1.0
+    
+    return np.nanmean(values), max(np.nanstd(values), 1e-6)
 
 def load_label(sp_pos, cf, labelencoder, device):
     # Prepare label and mask

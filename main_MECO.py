@@ -214,7 +214,12 @@ if __name__ == '__main__':
                 # Prepare label and mask
                 pad_mask, label = load_label(batch["sp_pos"], cf, le, device)
                 loss = nn.CrossEntropyLoss(reduction="none")
-                batch_error = torch.mean(torch.masked_select(loss(dnn_out, label), ~pad_mask))
+                valid_loss = torch.masked_select(loss(dnn_out, label), ~pad_mask)
+                if valid_loss.numel() == 0:
+                    print("Warning: No valid loss values!")
+                    batch_error = torch.tensor(0.0, device=device)
+                else:
+                    batch_error = torch.mean(valid_loss)
                 
                 # Backward pass
                 batch_error.backward()
@@ -223,7 +228,7 @@ if __name__ == '__main__':
                 
                 av_score.append(batch_error.to('cpu').detach().numpy())
                 print('counter:', counter)
-                print('\rSample {}\tAverage Error: {:.10f} '.format(counter, np.mean(av_score)), end=" ")
+                print('Sample {}\tAverage Error: {:.10f} '.format(counter, np.mean(av_score)), end=" ")
             
             loss_dict['train_loss'].append(np.mean(av_score))
 

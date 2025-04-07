@@ -627,32 +627,26 @@ def _process_meco(word_info_df, eyemovement_df, cf, reader_list, sn_list, tokeni
     }
 
 class MECOdataset(Dataset):
-    """Dataset class for MECO data"""
-    
-    def __init__(self, word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer):
-        self.data = _process_meco(word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer)
-        self.cf = cf
-    
-    def __len__(self):
-        return len(self.data["SN_input_ids"])
-    
-    def __getitem__(self, idx):
-        item = {
-            "sn_input_ids": torch.tensor(self.data["SN_input_ids"][idx, :]),
-            "sn_attention_mask": torch.tensor(self.data["SN_attention_mask"][idx, :]),
-            "sn_word_len": torch.tensor(self.data['SN_WORD_len'][idx, :]),
-            "sp_input_ids": torch.tensor(self.data["SP_input_ids"][idx, :]),
-            "sp_attention_mask": torch.tensor(self.data["SP_attention_mask"][idx, :]),
-            "sp_pos": torch.tensor(self.data["SP_ordinal_pos"][idx, :]),
-            "sp_fix_dur": torch.tensor(self.data["SP_fix_dur"][idx, :]),
-            "sp_landing_pos": torch.tensor(self.data["SP_landing_pos"][idx, :]),
-            "sub_id": torch.tensor(self.data["sub_id"][idx])
-        }
-        
-        # Нормализация gaze features
-        mask = ~torch.eq(item["sp_fix_dur"], 0)
-        item["sp_fix_dur"] = (item["sp_fix_dur"]/1000 - self.cf['fix_dur_mean'])/self.cf['fix_dur_std'] * mask
-        item["sp_landing_pos"] = (item["sp_landing_pos"] - self.cf['landing_pos_mean'])/self.cf['landing_pos_std'] * mask
-        item["sn_word_len"] = (item["sn_word_len"] - self.cf['sn_word_len_mean'])/self.cf['sn_word_len_std']
-        
-        return item
+
+	def __init__(self, word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer):
+		self.data = _process_meco(word_info_df, eyemovement_df, cf, reader_list, sn_list, tokenizer)
+		self.cf = cf
+	def __len__(self):
+		return len(self.data["SN_input_ids"])
+	
+	def __getitem__(self,idx):
+		sample = {}
+		sample["sn_input_ids"] = self.data["SN_input_ids"][idx,:]
+		sample["sn_attention_mask"] = self.data["SN_attention_mask"][idx,:]
+		sample["sn_word_len"] = self.data['SN_WORD_len'][idx,:]
+
+		sample["sp_input_ids"] = self.data["SP_input_ids"][idx,:]
+		sample["sp_attention_mask"] = self.data["SP_attention_mask"][idx,:]
+
+		sample["sp_pos"] = self.data["SP_ordinal_pos"][idx,:]
+		sample["sp_fix_dur"] = self.data["SP_fix_dur"][idx,:]
+		sample["sp_landing_pos"] = self.data["SP_landing_pos"][idx,:]
+
+		sample["sub_id"] = self.data["sub_id"][idx]
+
+		return sample

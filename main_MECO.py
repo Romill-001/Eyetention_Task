@@ -148,10 +148,10 @@ if __name__ == '__main__':
         
         # Preparing batch data with MECO dataset class
         dataset_train = MECOdataset(word_info_df, eyemovement_df, cf, reader_list_train, sn_list_train, tokenizer)
-        train_dataloader = DataLoader(dataset_train, batch_size=cf["batch_size"], shuffle=True, drop_last=True)
+        train_dataloader = DataLoader(dataset_train, batch_size=cf["batch_size"], shuffle=True, drop_last=False)
 
         dataset_val = MECOdataset(word_info_df, eyemovement_df, cf, reader_list_val, sn_list_val, tokenizer)
-        val_dataloader = DataLoader(dataset_val, batch_size=cf["batch_size"], shuffle=False, drop_last=True)
+        val_dataloader = DataLoader(dataset_val, batch_size=cf["batch_size"], shuffle=False, drop_last=False)
 
         dataset_test = MECOdataset(word_info_df, eyemovement_df, cf, reader_list_test, sn_list_test, tokenizer)
         test_dataloader = DataLoader(dataset_test, batch_size=cf["batch_size"], shuffle=False, drop_last=False)
@@ -356,6 +356,5 @@ if __name__ == '__main__':
         dic = {"sp_dnn": sp_dnn_list, "sp_human": sp_human_list}
         with open(os.path.join(
             args.save_data_folder, 
-            f'MECO_scanpath_generation_eyettention_{args.test_mode}_{args.atten_type}.pickle'
-        ), 'wb') as handle:
+            f'MECO_scanpath_generation_eyettention_{args.test_mode}_{args.atten_type}.pickle'), 'wb') as handle:
             pickle.dump(dic, handle, protocol=pickle.HIGHEST_PROTOCOL)

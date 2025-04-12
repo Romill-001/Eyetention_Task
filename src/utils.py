@@ -20,7 +20,7 @@ def load_bsc() -> Tuple[pd.DataFrame, ...]:
 	"""
 	:return: word info dataframe, part-of-speech info, eye movements
 	"""
-	bsc_path = './Data/beijing-sentence-corpus/'
+	bsc_path = '../data/beijing-sentence-corpus/'
 	info_path = os.path.join(bsc_path, 'BSC.Word.Info.v2.xlsx')
 	bsc_emd_path = os.path.join(bsc_path, 'BSC.EMD/BSC.EMD.txt')
 	word_info_df = pd.read_excel(info_path, 'word')
@@ -34,14 +34,14 @@ def load_corpus(corpus, task=None):
 		word_info_df, pos_info_df, eyemovement_df = load_bsc()
 		return word_info_df, pos_info_df, eyemovement_df
 	elif corpus == 'celer':
-		eyemovement_df = pd.read_csv('./Data/celer/data_v2.0/sent_fix.tsv', delimiter='\t')
+		eyemovement_df = pd.read_csv('../data/celer/data_v2.0/sent_fix.tsv', delimiter='\t')
 		eyemovement_df['CURRENT_FIX_INTEREST_AREA_LABEL'] = eyemovement_df.CURRENT_FIX_INTEREST_AREA_LABEL.replace('\t(.*)', '', regex=True)
-		word_info_df = pd.read_csv('./Data/celer/data_v2.0/sent_ia.tsv', delimiter='\t')
+		word_info_df = pd.read_csv('../data/celer/data_v2.0/sent_ia.tsv', delimiter='\t')
 		word_info_df['IA_LABEL'] = word_info_df.IA_LABEL.replace('\t(.*)', '', regex=True)
 		return word_info_df, None, eyemovement_df
 	elif corpus == 'MECO':
-		eyemovement_df = pd.read_csv('./Data/MECO/eyemovement.csv')
-		word_info_df = pd.read_csv('./Data/MECO/word_info.csv')
+		eyemovement_df = pd.read_csv('../data/MECO/eyemovement.csv')
+		word_info_df = pd.read_csv('../data/MECO/word_info.csv')
 		return word_info_df, None, eyemovement_df
 
 def compute_BSC_word_length(sn_df):

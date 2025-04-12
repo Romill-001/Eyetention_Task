@@ -9,11 +9,11 @@ DEVICE = "cpu"
 
 dnn = model.Eyettention(cf)
 dnn.eval()
-dnn.load_state_dict(torch.load("results/BSC/CHN_ET.pth", map_location=torch.device('cpu')))
+dnn.load_state_dict(torch.load("../training_results/BSC/CHN_ET.pth", map_location=torch.device('cpu')))
 tokenizer = BertTokenizerFast.from_pretrained(cf['model_pretrained'])
 
 
-with open("sentences_chn.txt", "r", encoding="utf-8") as file:
+with open("../res/sentences_chn.txt", "r", encoding="utf-8") as file:
     chinese_sentences = file.readlines()
 
 # texts = []
@@ -30,7 +30,7 @@ lac = LAC(mode="seg")
 text_word_len = [[compute_BSC_word_length(txt, lac) for txt in [text]] for text in chinese_sentences]
 text_word_len = [pad_seq(twl, cf['max_sn_len'], fill_value=np.nan, dtype=np.float32) for twl in text_word_len]
 
-path = "results/BSC/CHN_FN.pickle"
+path = "../training_results/BSC/CHN_FN.pickle"
 with open(path, "rb") as file_to_read:
     loaded_dictionary = pickle.load(file_to_read)
 sn_word_len_mean = loaded_dictionary['sn_word_len_mean']

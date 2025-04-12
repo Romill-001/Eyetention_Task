@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import Adam, RMSprop
 from transformers import BertTokenizer
-from model import Eyettention_readerID
+from model import Eyettention
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from torch.nn.functional import cross_entropy, softmax
 from collections import deque
@@ -18,16 +18,16 @@ import matplotlib.pyplot as plt
 import argparse
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description='run uniform baseline')
+	parser = argparse.ArgumentParser(description='run Eyettention on BSC dataset')
 	parser.add_argument(
 		'--test_mode',
-		help='test mode: text',
+		help='New Sentence Split: text, New Reader Split: subject',
 		type=str,
 		default='text'
 	)
 	parser.add_argument(
 		'--atten_type',
-		help='attention type',
+		help='attention type: global, local, local-g',
 		type=str,
 		default='local-g'
 	)
@@ -35,7 +35,19 @@ if __name__ == '__main__':
 		'--save_data_folder',
 		help='folder path for saving results',
 		type=str,
-		default='./results/BSC/'
+		default='../training_results/BSC/'
+	)
+	parser.add_argument(
+		'--scanpath_gen_flag',
+		help='whether to generate scanpath',
+		type=int,
+		default=1
+	)
+	parser.add_argument(
+		'--max_pred_len',
+		help='if scanpath_gen_flag is True, you can determine the longest scanpath that you want to generate, which should depend on the sentence length',
+		type=int,
+		default=60
 	)
 	parser.add_argument(
 		'--gpu',
@@ -43,16 +55,10 @@ if __name__ == '__main__':
 		type=int,
 		default=0
 	)
-	parser.add_argument(
-		'--emb_size',
-		help='readerID embedding size',
-		type=int,
-		default=16
-	)
 	args = parser.parse_args()
 	gpu = args.gpu
 
-	torch.set_default_tensor_type('torch.FloatTensor')
+	torch.set_default_tensor_type(torch.FloatTensor)
 	availbl = torch.cuda.is_available()
 	print(torch.cuda.is_available())
 	if availbl:
@@ -60,7 +66,12 @@ if __name__ == '__main__':
 	else:
 		device = 'cpu'
 	torch.cuda.set_device(gpu)
+	# torch.set_default_dtype(torch.float32)
+	# availbl = torch.cuda.is_available()
+	# device = f'cuda:{gpu}' if availbl else 'cpu'
+	# torch.set_default_device(gpu)
 
+	
 	cf = {"model_pretrained": "bert-base-chinese",
 			"lr": 1e-3,
 			"max_grad_norm": 10,
@@ -68,12 +79,12 @@ if __name__ == '__main__':
 			"n_folds": 5,
 			"dataset": 'BSC',
 			"atten_type": args.atten_type,
-			"subid_emb_size": args.emb_size,
 			"batch_size": 256,
 			"max_sn_len": 27, #include start token and end token
 			"max_sp_len": 40, #include start token and end token
 			"norm_type": "z-score",
 			"earlystop_patience": 20,
+			"max_pred_len":args.max_pred_len
 			}
 
 	#Encode the label into interger categories, setting the exclusive category 'cf["max_sn_len"]-1' as the end sign
@@ -88,14 +99,20 @@ if __name__ == '__main__':
 	#Make list with reader index
 	reader_list = np.unique(eyemovement_df.id.values).tolist()
 
-	#Split training&test sets by text
-	print('Start evaluating on new sentences.')
-	split_list = sn_list
-
+	#Split training&test sets by text or reader, depending on configuration
+	if args.test_mode == 'text':
+		print('Start evaluating on new sentences.')
+		split_list = sn_list
+	elif args.test_mode == 'subject':
+		print('Start evaluating on new readers.')
+		split_list = reader_list
 
 	n_folds = cf["n_folds"]
 	kf = KFold(n_splits=n_folds, shuffle=True, random_state=0)
 	fold_indx = 0
+	#for scanpath generation
+	sp_dnn_list = []
+	sp_human_list = []
 	for train_idx, test_idx in kf.split(split_list):
 		loss_dict = {'val_loss':[], 'train_loss':[], 'test_ll':[]}
 		list_train = [split_list[i] for i in train_idx]
@@ -109,10 +126,17 @@ if __name__ == '__main__':
 		list_train_net = [list_train[i] for i in train_index]
 		list_val_net = [list_train[i] for i in val_index]
 
-		sn_list_train = list_train_net
-		sn_list_val = list_val_net
-		sn_list_test = list_test
-		reader_list_train, reader_list_val, reader_list_test = reader_list, reader_list, reader_list
+		if args.test_mode == 'text':
+			sn_list_train = list_train_net
+			sn_list_val = list_val_net
+			sn_list_test = list_test
+			reader_list_train, reader_list_val, reader_list_test = reader_list, reader_list, reader_list
+
+		elif args.test_mode == 'subject':
+			reader_list_train = list_train_net
+			reader_list_val = list_val_net
+			reader_list_test = list_test
+			sn_list_train, sn_list_val, sn_list_test = sn_list, sn_list, sn_list
 
 		#initialize tokenizer
 		tokenizer = BertTokenizer.from_pretrained(cf['model_pretrained'])
@@ -131,8 +155,8 @@ if __name__ == '__main__':
 		landing_pos_mean, landing_pos_std = calculate_mean_std(dataloader=train_dataloaderr, feat_key="sp_landing_pos", padding_value=0)
 		sn_word_len_mean, sn_word_len_std = calculate_mean_std(dataloader=train_dataloaderr, feat_key="sn_word_len")
 
-		# load model here
-		dnn = Eyettention_readerID(cf)
+		# load model
+		dnn = Eyettention(cf)
 
 		#training
 		episode = 0
@@ -158,13 +182,12 @@ if __name__ == '__main__':
 				sp_landing_pos = batchh["sp_landing_pos"].to(device)
 				sp_fix_dur = (batchh["sp_fix_dur"]/1000).to(device)
 				sn_word_len = batchh["sn_word_len"].to(device)
-				sub_id = batchh["sub_id"].to(device)
 
 				#normalize gaze features
 				mask = ~torch.eq(sp_fix_dur, 0)
 				sp_fix_dur = (sp_fix_dur-fix_dur_mean)/fix_dur_std * mask
-				sp_landing_pos = (sp_landing_pos - landing_pos_mean)/landing_pos_std * mask
 				sp_fix_dur = torch.nan_to_num(sp_fix_dur)
+				sp_landing_pos = (sp_landing_pos - landing_pos_mean)/landing_pos_std * mask
 				sp_landing_pos = torch.nan_to_num(sp_landing_pos)
 				sn_word_len = (sn_word_len - sn_word_len_mean)/sn_word_len_std
 				sn_word_len = torch.nan_to_num(sn_word_len)
@@ -180,8 +203,7 @@ if __name__ == '__main__':
 											word_ids_sp=None,
 											sp_fix_dur=sp_fix_dur,
 											sp_landing_pos=sp_landing_pos,
-											sn_word_len = sn_word_len,
-											sub_id = sub_id)
+											sn_word_len = sn_word_len)#[batch, step, dec_o_dim]
 
 				dnn_out = dnn_out.permute(0,2,1)              #[batch, dec_o_dim, step]
 
@@ -214,7 +236,6 @@ if __name__ == '__main__':
 					sp_landing_pos_val = batchh["sp_landing_pos"].to(device)
 					sp_fix_dur_val = (batchh["sp_fix_dur"]/1000).to(device)
 					sn_word_len_val = batchh["sn_word_len"].to(device)
-					sub_id_val = batchh["sub_id"].to(device)
 
 					#normalize gaze features
 					mask = ~torch.eq(sp_fix_dur_val, 0)
@@ -233,9 +254,7 @@ if __name__ == '__main__':
 														word_ids_sp=None,
 														sp_fix_dur=sp_fix_dur_val,
 														sp_landing_pos=sp_landing_pos_val,
-														sn_word_len = sn_word_len_val,
-														sub_id = sub_id_val)
-
+														sn_word_len = sn_word_len_val)#[batch, step, dec_o_dim]
 					dnn_out_val = dnn_out_val.permute(0,2,1)              #[batch, dec_o_dim, step
 
 					#prepare label and mask
@@ -248,7 +267,7 @@ if __name__ == '__main__':
 
 			if np.mean(val_loss) < old_score:
 				# save model if val loss is smallest
-				torch.save(dnn.state_dict(), '{}/CELoss_BSC_text_eyettention_readerID_{}_emb{}_newloss_fold{}.pth'.format(args.save_data_folder, args.atten_type, args.emb_size, fold_indx))
+				torch.save(dnn.state_dict(), '{}/CELoss_BSC_{}_eyettention_{}_newloss_fold{}.pth'.format(args.save_data_folder, args.test_mode, args.atten_type, fold_indx))
 				old_score= np.mean(val_loss)
 				print('\nsaved model state dict\n')
 				save_ep_couter = episode_i
@@ -261,7 +280,7 @@ if __name__ == '__main__':
 		#evaluation
 		dnn.eval()
 		res_llh=[]
-		dnn.load_state_dict(torch.load(os.path.join(args.save_data_folder,f'CELoss_BSC_text_eyettention_readerID_{args.atten_type}_emb{args.emb_size}_newloss_fold{fold_indx}.pth'), map_location='cpu'))
+		dnn.load_state_dict(torch.load(os.path.join(args.save_data_folder, f'CELoss_BSC_{args.test_mode}_eyettention_{args.atten_type}_newloss_fold{fold_indx}.pth'), map_location='cpu'))
 		dnn.to(device)
 		batch_indx = 0
 		for batchh in test_dataloaderr:
@@ -274,7 +293,6 @@ if __name__ == '__main__':
 				sp_landing_pos_test = batchh["sp_landing_pos"].to(device)
 				sp_fix_dur_test = (batchh["sp_fix_dur"]/1000).to(device)
 				sn_word_len_test = batchh["sn_word_len"].to(device)
-				sub_id_test = batchh["sub_id"].to(device)
 
 				#normalize gaze features
 				mask = ~torch.eq(sp_fix_dur_test, 0)
@@ -293,8 +311,7 @@ if __name__ == '__main__':
 														word_ids_sp=None,
 														sp_fix_dur=sp_fix_dur_test,
 														sp_landing_pos=sp_landing_pos_test,
-														sn_word_len = sn_word_len_test,
-														sub_id = sub_id_test)
+														sn_word_len = sn_word_len_test)#[batch, step, dec_o_dim]
 
 				#We do not use nn.CrossEntropyLoss here to calculate the likelihood because it combines nn.LogSoftmax and nn.NLL,
 				#while nn.LogSoftmax returns a log value based on e, we want 2 instead
@@ -304,10 +321,24 @@ if __name__ == '__main__':
 
 				#prepare label and mask
 				pad_mask_test, label_test = load_label(sp_pos_test, cf, le, 'cpu')
-				pred = dnn_out_test.argmax(axis=2)
+
 				#compute log likelihood for the batch samples
 				res_batch = eval_log_llh(dnn_out_test, label_test, pad_mask_test)
 				res_llh.append(np.array(res_batch))
+
+				if bool(args.scanpath_gen_flag) == True:
+					sn_len = (torch.sum(sn_attention_mask_test, axis=1) - 2).detach().to('cpu').numpy()
+					#compute the scan path generated from the model when the first CLS token is given
+					sp_dnn, _ = dnn.scanpath_generation(sn_emd=sn_input_ids_test,
+														 sn_mask=sn_attention_mask_test,
+														 word_ids_sn=None,
+														 sn_word_len = sn_word_len_test,
+														 le=le,
+														 max_pred_len=cf['max_pred_len'])
+
+					sp_dnn, sp_human = prepare_scanpath(sp_dnn.detach().to('cpu').numpy(), sn_len, sp_pos_test, cf)
+					sp_dnn_list.extend(sp_dnn)
+					sp_human_list.extend(sp_human)
 
 				batch_indx +=1
 
@@ -319,9 +350,15 @@ if __name__ == '__main__':
 		loss_dict['landing_pos_std'] = landing_pos_std
 		loss_dict['sn_word_len_mean'] = sn_word_len_mean
 		loss_dict['sn_word_len_std'] = sn_word_len_std
+
 		print('\nTest likelihood is {} \n'.format(np.mean(res_llh)))
 		#save results
-		with open('{}/res_BSC_NRS_eyettention_readerID_{}_emb{}_Fold{}.pickle'.format(args.save_data_folder, args.atten_type, args.emb_size, fold_indx), 'wb') as handle:
+		with open('{}/res_BSC_{}_eyettention_{}_Fold{}.pickle'.format(args.save_data_folder, args.test_mode, args.atten_type, fold_indx), 'wb') as handle:
 			pickle.dump(loss_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
 		fold_indx += 1
+
+	if bool(args.scanpath_gen_flag) == True:
+		#save results
+		dic = {"sp_dnn": sp_dnn_list, "sp_human": sp_human_list}
+		with open(os.path.join(args.save_data_folder, f'BSC_scanpath_generation_eyettention_{args.test_mode}_{args.atten_type}.pickle'), 'wb') as handle:
+			pickle.dump(dic, handle, protocol=pickle.HIGHEST_PROTOCOL)

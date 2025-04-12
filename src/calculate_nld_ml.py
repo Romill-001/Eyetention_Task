@@ -1,8 +1,8 @@
 from config import *
 
-cf = {"model_pretrained": "bert-base-cased",
+cf = {"model_pretrained": "bert-base-multilingual-cased",
       "atten_type": 'local-g',
-      "max_sn_len": 24,
+      "max_sn_len": 27,
       "max_sn_token": 35,
       "max_sp_len": 52}
 
@@ -10,11 +10,12 @@ DEVICE = "cpu"
 
 dnn = model.Eyettention(cf)
 dnn.eval()
-dnn.load_state_dict(torch.load("results/Celer/ENG_ET.pth", map_location=torch.device('cpu')))
+state_dict = torch.load("../training_results/MECO/ML_ET.pth", map_location=torch.device('cpu'))
+missing_keys, unexpected_keys = dnn.load_state_dict(state_dict, strict=False)
 tokenizer = BertTokenizerFast.from_pretrained(cf['model_pretrained'])
 
 
-english_sentences = open("sentences_eng.txt", "r").readlines()
+english_sentences = open("../res/sentences_ml.txt", "r",encoding="UTF-8").readlines()
 
 texts = []
 for s in english_sentences:
@@ -28,7 +29,7 @@ word_ids = [[val if val is not None else np.nan for val in wi] for wi in word_id
 text_word_len = [[compute_word_length(txt) for txt in [text]] for text in texts]
 text_word_len = [pad_seq(twl, cf['max_sn_len'], fill_value=np.nan, dtype=np.float32) for twl in text_word_len]
 
-path = "results/Celer/ENG_FN.pickle"
+path = "../training_results/MECO/ML_FN.pickle"
 with open(path, "rb") as file_to_read:
     loaded_dictionary = pickle.load(file_to_read)
 sn_word_len_mean = loaded_dictionary['sn_word_len_mean']
@@ -76,7 +77,7 @@ mean_nld_model = np.mean(nld_model)
 mean_nld_rand = np.mean(nld_rand)
 
 if mean_nld_model < mean_nld_rand:
-    print(f"Модель работает лучше, чем случайное предсказание. {mean_nld_model}")
+    print(f"Модель работает лучше, чем случайное предсказание. NLD предсказаний {mean_nld_model}, NLD перемешанной последовательности {mean_nld_rand}")
 else:
     print(f"Модель работает на уровне случайного предсказания. {mean_nld_rand}")
 

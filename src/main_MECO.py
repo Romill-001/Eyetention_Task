@@ -36,7 +36,7 @@ if __name__ == '__main__':
         '--save_data_folder',
         help='folder path for saving results',
         type=str,
-        default='./results/MECO/'
+        default='../training_results/MECO/'
     )
     parser.add_argument(
         '--scanpath_gen_flag',

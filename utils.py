@@ -229,15 +229,16 @@ def load_label(sp_pos, cf, labelencoder, device):
 		print(f"Unique labels in data: {np.unique(label_np)}")
 		print(f"Encoder classes: {labelencoder.classes_}")
 		raise
-	# if device == 'cpu':
-	# 	pad_mask = pad_mask.to('cpu').detach().numpy()
+
+	if device == 'cpu':
+		pad_mask = pad_mask.to('cpu').detach().numpy()
 	# else:
 	# 	label_encoded = torch.from_numpy(label_encoded).to(device)
 
 	label_encoded = torch.from_numpy(label_encoded).long()
 	if device != 'cpu':
 		label_encoded = label_encoded.to(device)
-		
+
 	if torch.sum(~pad_mask) == 0:
 		print("Warning: empty mask!")
 		return pad_mask, torch.zeros_like(label_encoded)
@@ -248,6 +249,8 @@ def load_label(sp_pos, cf, labelencoder, device):
 def likelihood(pred, label, mask):
 	#test
 	#res = F.nll_loss(torch.tensor(pred), torch.tensor(label))
+	if isinstance(mask, torch.Tensor):
+		mask = mask.cpu().numpy()
 	label = one_hot_encode(label, pred.shape[1])
 	res = np.sum(np.multiply(pred, label), axis=1)
 	res = np.sum(res * ~mask)/np.sum(~mask)

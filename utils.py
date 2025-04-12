@@ -230,8 +230,8 @@ def load_label(sp_pos, cf, labelencoder, device):
 		print(f"Encoder classes: {labelencoder.classes_}")
 		raise
 
-	if device == 'cpu':
-		pad_mask = pad_mask.to('cpu').detach().numpy()
+	# if device == 'cpu':
+	# 	pad_mask = pad_mask.to('cpu').detach().numpy()
 	# else:
 	# 	label_encoded = torch.from_numpy(label_encoded).to(device)
 

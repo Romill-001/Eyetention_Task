@@ -288,7 +288,14 @@ def prepare_scanpath(sp_dnn, sn_len, sp_human, cf):
 		sp_dnn_cut[i][-1] = cf["max_sn_len"]-1
 
 	#process the human scanpath data, truncating data after the end point
-	stop_indx = [np.where(sp_human[i,:]==cf["max_sn_len"]-1)[0][0] for i in range(sp_human.shape[0])]
+	stop_indx = []
+	for i in range(sp_human.shape[0]):
+		stop_positions = np.where(sp_human[i, :] == cf["max_sn_len"] - 1)[0]
+		if len(stop_positions) > 0:
+			stop_indx.append(stop_positions[0])
+		else:
+			stop_indx.append(sp_human.shape[1]) 
+	
 	sp_human_cut = [sp_human[i][:stop_indx[i]+1] for i in range(sp_human.shape[0])]
 	return sp_dnn_cut, sp_human_cut
 

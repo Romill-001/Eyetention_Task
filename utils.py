@@ -229,11 +229,15 @@ def load_label(sp_pos, cf, labelencoder, device):
 		print(f"Unique labels in data: {np.unique(label_np)}")
 		print(f"Encoder classes: {labelencoder.classes_}")
 		raise
-	if device == 'cpu':
-		pad_mask = pad_mask.to('cpu').detach().numpy()
-	else:
-		label_encoded = torch.from_numpy(label_encoded).to(device)
+	# if device == 'cpu':
+	# 	pad_mask = pad_mask.to('cpu').detach().numpy()
+	# else:
+	# 	label_encoded = torch.from_numpy(label_encoded).to(device)
 
+	label_encoded = torch.from_numpy(label_encoded).long()
+	if device != 'cpu':
+		label_encoded = label_encoded.to(device)
+		
 	if torch.sum(~pad_mask) == 0:
 		print("Warning: empty mask!")
 		return pad_mask, torch.zeros_like(label_encoded)

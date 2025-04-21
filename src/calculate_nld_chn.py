@@ -35,8 +35,8 @@ text_word_len = [pad_seq(twl, cf['max_sn_len'], fill_value=np.nan, dtype=np.floa
 path = "../training_results/BSC/CHN_FN.pickle"
 with open(path, "rb") as file_to_read:
     loaded_dictionary = pickle.load(file_to_read)
-sn_word_len_mean = loaded_dictionary['sn_word_len_mean']
-sn_word_len_std = loaded_dictionary['sn_word_len_std']
+sn_word_len_mean = loaded_dictionary['sn_word_len_mean'].numpy()
+sn_word_len_std = loaded_dictionary['sn_word_len_std'].numpy()
 
 text_word_len = [(twl - sn_word_len_mean) / sn_word_len_std for twl in text_word_len]
 text_word_len = [np.nan_to_num(twl, nan=0) for twl in text_word_len]

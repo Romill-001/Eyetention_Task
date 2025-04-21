@@ -81,6 +81,16 @@ def generate_sp(sentence):
     true_sp = list(range(len(sentence.split())))
     return (true_sp, np.random.permutation(true_sp).tolist())
 
+
+def generate_sp_chn(sentence):
+    tokenizer = BertTokenizerFast.from_pretrained('bert-base-chinese')
+    tokens = tokenizer.tokenize(sentence)
+    true_sp = list(range(len(tokens)))
+    shuffled_sp = np.random.permutation(true_sp).tolist()
+    
+    return (true_sp, shuffled_sp)
+
+
 def compute_BSC_word_length(sentence, lac):
     word_string = lac.run(sentence)
     #print(word_string)

@@ -62,8 +62,8 @@ scanpaths = [sp[0] for sp in scanpaths]
 sn_lens = [(torch.sum(t['attention_mask'], axis=1) - 2).detach().to('cpu').numpy().tolist() for t in tokens]
 scanpaths = [post_process_scanpath(x, y) for x, y in zip(scanpaths, sn_lens)]
 
-human = [generate_sp(s)[0] for s in chinese_sentences]
-human_sh = [generate_sp(s)[1] for s in chinese_sentences]
+human = [generate_sp_chn(s)[0] for s in chinese_sentences]
+human_sh = [generate_sp_chn(s)[1] for s in chinese_sentences]
 
 nld_model = []
 nld_rand = []

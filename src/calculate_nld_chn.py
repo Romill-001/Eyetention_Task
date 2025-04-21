@@ -1,4 +1,5 @@
 from config import *
+import LAC
 
 cf = {"model_pretrained": "bert-base-chinese",
       "atten_type": 'local-g',
@@ -9,7 +10,8 @@ DEVICE = "cpu"
 
 dnn = model.Eyettention(cf)
 dnn.eval()
-dnn.load_state_dict(torch.load("../training_results/BSC/CHN_ET.pth", map_location=torch.device('cpu')))
+state_dict = torch.load("../training_results/BSC/CHN_ET.pth", map_location=torch.device('cpu'))
+missing_keys, unexpected_keys = dnn.load_state_dict(state_dict, strict=False)
 tokenizer = BertTokenizerFast.from_pretrained(cf['model_pretrained'])
 
 
@@ -22,7 +24,7 @@ with open("../res/sentences_chn.txt", "r", encoding="utf-8") as file:
 
 tokens = [tokenizer(t, add_special_tokens=True, max_length=cf['max_sn_len'], padding='max_length') for t in chinese_sentences]
 
-lac = LAC(mode="seg")
+lac = LAC.LAC(mode="seg")
 
 # word_ids = [t.word_ids() for t in tokens]
 # word_ids = [[val if val is not None else np.nan for val in wi] for wi in word_ids]
@@ -78,7 +80,7 @@ mean_nld_model = np.mean(nld_model)
 mean_nld_rand = np.mean(nld_rand)
 
 if mean_nld_model < mean_nld_rand:
-    print(f"Модель работает лучше, чем случайное предсказание. {mean_nld_model}")
+    print(f"Модель работает лучше, чем случайное предсказание. {mean_nld_model}, {mean_nld_rand}")
 else:
     print(f"Модель работает на уровне случайного предсказания. {mean_nld_rand}")
 

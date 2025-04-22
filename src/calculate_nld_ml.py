@@ -60,7 +60,9 @@ sn_lens = [(torch.max(torch.nan_to_num(wi), dim=1)[0] + 1 - 2).detach().to('cpu'
 scanpaths = [post_process_scanpath(x, y) for x, y in zip(scanpaths, sn_lens)]
 
 human = [generate_sp(s)[0] for s in english_sentences]
-human_sh = [generate_sp(s)[1] for s in english_sentences]
+# human_sh = [generate_sp_chn(s)[1] for s in chinese_sentences]
+indices = np.random.permutation(len(human))
+human_sh = [human[i] for i in indices]
 
 nld_model = []
 nld_rand = []
@@ -69,7 +71,7 @@ for dnn_path, human_path in zip(scanpaths, human):
     nld = calculate_nld(dnn_path, human_path)
     nld_model.append(nld)
 
-for dnn_path, human_path in zip(human, human_sh):
+for dnn_path, human_path in zip(scanpaths, human_sh):
     nld = calculate_nld(dnn_path, human_path)
     nld_rand.append(nld)
 

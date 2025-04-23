@@ -11,7 +11,8 @@ DEVICE = "cpu"
 
 dnn = model.Eyettention(cf)
 dnn.eval()
-dnn.load_state_dict(torch.load("../training_results/Celer/ENG_ET.pth", map_location=torch.device('cpu')))
+state_dict = torch.load("../training_results/Celer/ENG_ET.pth", map_location=torch.device('cpu'))
+missing_keys, unexpected_keys = dnn.load_state_dict(state_dict, strict=False)
 tokenizer = BertTokenizerFast.from_pretrained(cf['model_pretrained'])
 
 

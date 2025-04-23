@@ -62,7 +62,7 @@ def func(start, end):
 
     human = [generate_sp(s)[0] for s in english_sentences]
     # human_sh = [generate_sp_chn(s)[1] for s in chinese_sentences]
-    indices = np.random.permutation(len(human))
+    # indices = np.random.permutation(len(human))
     human_sh = human[::-1]
 
     nld_model = []
@@ -82,7 +82,7 @@ def func(start, end):
     if mean_nld_model < mean_nld_rand:
         print(f"Модель работает лучше, чем случайное предсказание. NLD предсказаний {mean_nld_model}, NLD перемешанной последовательности {mean_nld_rand}")
     else:
-        print(f"Модель работает на уровне случайного предсказания. {mean_nld_rand}")
+        print(f"Модель работает на уровне случайного предсказания. NLD предсказаний {mean_nld_model}, NLD перемешанной последовательности {mean_nld_rand}")
 
 start, end = 0, 10
 for i in range(13):

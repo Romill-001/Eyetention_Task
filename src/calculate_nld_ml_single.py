@@ -61,9 +61,9 @@ def func(start, end):
     scanpaths = [post_process_scanpath(x, y) for x, y in zip(scanpaths, sn_lens)]
 
     human = [generate_sp(s)[0] for s in english_sentences]
-# human_sh = [generate_sp_chn(s)[1] for s in chinese_sentences]
+    # human_sh = [generate_sp_chn(s)[1] for s in chinese_sentences]
     indices = np.random.permutation(len(human))
-    human_sh = [human[i] for i in indices]
+    human_sh = human[::-1]
 
     nld_model = []
     nld_rand = []
@@ -85,7 +85,7 @@ def func(start, end):
         print(f"Модель работает на уровне случайного предсказания. {mean_nld_rand}")
 
 start, end = 0, 10
-for i in range(130):
+for i in range(13):
     func(start, end)
     start += 10
     end += 10

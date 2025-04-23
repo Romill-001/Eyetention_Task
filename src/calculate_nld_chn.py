@@ -64,7 +64,7 @@ scanpaths = [post_process_scanpath(x, y) for x, y in zip(scanpaths, sn_lens)]
 
 human = [generate_sp_chn(s)[0] for s in chinese_sentences]
 # human_sh = [generate_sp_chn(s)[1] for s in chinese_sentences]
-human_sh = np.random.permutation(human).tolist()
+human_sh = human[::-1]
 
 nld_model = []
 nld_rand = []

@@ -17,9 +17,9 @@ def func(start, end):
 
 
     english_sentences = open("../res/sentences_ml.txt", "r",encoding="UTF-8").readlines()
-
+    english_sentences = english_sentences[start:end]
     texts = []
-    for s in english_sentences[start:end]:
+    for s in english_sentences:
         texts.append(('[CLS]' + ' ' + s + ' ' + '[SEP]').split())
 
     tokens = [tokenizer(t, add_special_tokens=False, max_length=cf['max_sn_token'], padding='max_length', is_split_into_words=True) for t in texts]

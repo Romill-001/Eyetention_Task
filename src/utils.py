@@ -34,22 +34,22 @@ def load_corpus(corpus, task=None):
 		word_info_df, pos_info_df, eyemovement_df = load_bsc()
 		return word_info_df, pos_info_df, eyemovement_df
 	elif corpus == 'celer':
-		eyemovement_df = pd.read_csv('../data/celer/data_v2.0/sent_fix.tsv', delimiter='\t')
+		eyemovement_df = pd.read_csv('../Data/celer/data_v2.0/sent_fix.tsv', delimiter='\t')
 		eyemovement_df['CURRENT_FIX_INTEREST_AREA_LABEL'] = eyemovement_df.CURRENT_FIX_INTEREST_AREA_LABEL.replace('\t(.*)', '', regex=True)
-		word_info_df = pd.read_csv('../data/celer/data_v2.0/sent_ia.tsv', delimiter='\t')
+		word_info_df = pd.read_csv('../Data/celer/data_v2.0/sent_ia.tsv', delimiter='\t')
 		word_info_df['IA_LABEL'] = word_info_df.IA_LABEL.replace('\t(.*)', '', regex=True)
 		return word_info_df, None, eyemovement_df
 	elif corpus == 'MECO':
-		eyemovement_df = pd.read_csv('../data/MECO/eyemovement.csv')
-		word_info_df = pd.read_csv('../data/MECO/word_info.csv')
+		eyemovement_df = pd.read_csv('../Data/MECO/eyemovement.csv')
+		word_info_df = pd.read_csv('../Data/MECO/word_info.csv')
 		return word_info_df, None, eyemovement_df
 	elif corpus == 'MECO_ru':
-		eyemovement_df = pd.read_csv('../data/MECO/eyemovement_ru.csv')
-		word_info_df = pd.read_csv('../data/MECO/word_info_ru.csv')
+		eyemovement_df = pd.read_csv('../Data/MECO/eyemovement_ru.csv')
+		word_info_df = pd.read_csv('../Data/MECO/word_info_ru.csv')
 		return word_info_df, None, eyemovement_df
 	elif corpus == 'MECO_no_du':
-		eyemovement_df = pd.read_csv('../data/MECO/eyemovement_no_du.csv')
-		word_info_df = pd.read_csv('../data/MECO/word_info_no_du.csv')
+		eyemovement_df = pd.read_csv('../Data/MECO/eyemovement_no_du.csv')
+		word_info_df = pd.read_csv('../Data/MECO/word_info_no_du.csv')
 		return word_info_df, None, eyemovement_df
 
 def compute_BSC_word_length(sn_df):

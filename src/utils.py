@@ -43,6 +43,14 @@ def load_corpus(corpus, task=None):
 		eyemovement_df = pd.read_csv('../data/MECO/eyemovement.csv')
 		word_info_df = pd.read_csv('../data/MECO/word_info.csv')
 		return word_info_df, None, eyemovement_df
+	elif corpus == 'MECO_ru':
+		eyemovement_df = pd.read_csv('../data/MECO/eyemovement_ru.csv')
+		word_info_df = pd.read_csv('../data/MECO/word_info_ru.csv')
+		return word_info_df, None, eyemovement_df
+	elif corpus == 'MECO_no_du':
+		eyemovement_df = pd.read_csv('../data/MECO/eyemovement_no_du.csv')
+		word_info_df = pd.read_csv('../data/MECO/word_info_no_du.csv')
+		return word_info_df, None, eyemovement_df
 
 def compute_BSC_word_length(sn_df):
 	word_len = sn_df.LEN.values
